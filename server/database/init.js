@@ -2,8 +2,8 @@ const sqlite3 = require('sqlite3').verbose();
 const path = require('path');
 const fs = require('fs');
 
-const dbPath = path.join(__dirname, '../../database/paradise-shop.db');
-const schemaPath = path.join(__dirname, '../../database/schema.sql');
+const dbPath = path.join(__dirname, '../database/paradise-shop.db');
+const schemaPath = path.join(__dirname, '../database/schema.sql');
 
 // Remove existing database if it exists
 if (fs.existsSync(dbPath)) {
