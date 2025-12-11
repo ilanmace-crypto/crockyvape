@@ -9,9 +9,10 @@ const LoginPage = () => {
   const { login } = useAuth();
   const navigate = useNavigate();
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    if (login(password)) {
+    const success = await login(password);
+    if (success) {
       navigate('/admin');
     } else {
       setError('Неверный логин или пароль');

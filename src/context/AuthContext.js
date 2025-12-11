@@ -19,12 +19,13 @@ export const AuthProvider = ({ children }) => {
   // Логин только по паролю: username всегда "admin"
   const login = async (password) => {
     try {
-      const userData = await apiLogin(password);
+      const result = await apiLogin(password);
 
-      if (userData && userData.role === 'admin') {
+      // backend возвращает { success, user: { id, username, role } }
+      if (result && result.success && result.user && result.user.role === 'admin') {
         setIsAuthenticated(true);
         setIsAdmin(true);
-        setUser(userData);
+        setUser(result.user);
         return true;
       }
 
