@@ -4,13 +4,16 @@ WORKDIR /app
 
 # Copy server files
 COPY server/package*.json ./server/
-COPY database ./server/database
 
 # Install dependencies
-RUN cd server && npm install && npm run init-db
+RUN cd server && npm install
 
-# Copy server source
+# Copy all source files including database
 COPY server/ ./server/
+COPY database ./server/database
+
+# Initialize database
+RUN cd server && npm run init-db
 
 # Expose port
 EXPOSE 10000
