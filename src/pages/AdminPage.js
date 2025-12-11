@@ -298,6 +298,8 @@ const AdminPage = () => {
                     </div>
                   </div>
 
+                  {console.log('Render product', product.id, { category: product.category, editingProduct, selectedCategory })}
+
                   {(product.category === 'liquids' || (editingProduct === product.id && selectedCategory === 'liquids') || (editingProduct === product.id && !product.category && selectedCategory === 'liquids')) && (
                     <div className="flavors-admin">
                       <h4>Вкусы и количество банок:</h4>
