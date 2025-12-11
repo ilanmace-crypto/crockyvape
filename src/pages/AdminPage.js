@@ -159,10 +159,13 @@ const AdminPage = () => {
         );
         const category_id = matchedCategory ? matchedCategory.id : null;
 
-        await updateProduct(product.id, {
+        const payload = {
           ...product,
           category_id,
-        });
+        };
+        console.log('Saving product payload:', payload);
+
+        await updateProduct(product.id, payload);
       }
       alert('Изменения сохранены!');
     } catch (err) {
