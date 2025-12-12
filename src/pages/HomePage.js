@@ -37,25 +37,26 @@ const HomePage = () => {
 
   const filteredProducts = selectedCategory === 'all' 
     ? products.filter(product => {
-        // Скрываем товары, у которых все вкусы закончены (только для жидкостей)
-        if (product.category === 'liquids' && product.flavors) {
-          const flavors = Object.entries(product.flavors);
-          if (flavors.length === 0) return true; // Если вкусов нет, показываем
-          const hasStock = flavors.some(([flavor, stock]) => stock > 0);
+        // Скрываем жидкости, у которых закончились все вкусы
+        if (product.category === 'liquids') {
+          const flavors = product.flavors ? Object.entries(product.flavors) : [];
+          if (flavors.length === 0) return false; // нет вкусов — не показываем
+          const hasStock = flavors.some(([, stock]) => stock > 0);
           return hasStock;
         }
         return true;
       })
     : products.filter(product => {
         const categoryMatch = product.category === selectedCategory;
-        // Дополнительная фильтрация для жидкостей
-        if (categoryMatch && product.category === 'liquids' && product.flavors) {
-          const flavors = Object.entries(product.flavors);
-          if (flavors.length === 0) return true;
-          const hasStock = flavors.some(([flavor, stock]) => stock > 0);
+        if (!categoryMatch) return false;
+
+        if (product.category === 'liquids') {
+          const flavors = product.flavors ? Object.entries(product.flavors) : [];
+          if (flavors.length === 0) return false;
+          const hasStock = flavors.some(([, stock]) => stock > 0);
           return hasStock;
         }
-        return categoryMatch;
+        return true;
       });
 
   const handleAddToCart = (product) => {
