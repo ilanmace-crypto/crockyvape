@@ -18,24 +18,35 @@ export const AuthProvider = ({ children }) => {
   const [isAdmin, setIsAdmin] = useState(false);
   const [user, setUser] = useState(null);
 
-  // Логин только по паролю: username всегда "admin". Проверка делается на бэке.
   const login = async (password) => {
     try {
       const trimmed = (password || '').trim();
+      if (!trimmed) {
+        console.error('Empty password provided');
+        return { success: false, error: 'Password is required' };
+      }
+      
+      console.log('Attempting login with password:', trimmed);
       const result = await apiLogin(trimmed);
+      console.log('Login response:', result);
 
-      // backend возвращает { success, user: { id, username, role } }
       if (result && result.success && result.user && result.user.role === 'admin') {
         setIsAuthenticated(true);
         setIsAdmin(true);
         setUser(result.user);
-        return true;
+        return { success: true };
       }
 
-      return false;
+      return { 
+        success: false, 
+        error: result?.error || 'Invalid credentials' 
+      };
     } catch (error) {
       console.error('Login error:', error);
-      return false;
+      return { 
+        success: false, 
+        error: error.response?.data?.error || 'Login failed. Please try again.' 
+      };
     }
   };
 
