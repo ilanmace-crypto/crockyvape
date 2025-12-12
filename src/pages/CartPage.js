@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useCart } from '../context/CartContext';
 import { useUser } from '../context/UserContext';
+import { createOrder } from '../services/apiService';
 import './CartPage.css';
 
 const CartPage = () => {
@@ -11,6 +12,8 @@ const CartPage = () => {
     telegramUsername: '',
     paymentMethod: 'cash'
   });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [successMessage, setSuccessMessage] = useState('');
 
   useEffect(() => {
     if (currentUser?.telegramUsername) {
@@ -44,14 +47,34 @@ const CartPage = () => {
     const normalized = raw.startsWith('@') ? raw.slice(1) : raw;
     const savedUser = ensureUserWithTelegram(normalized);
 
-    await checkout({
-      ...customerInfo,
-      telegramUsername: normalized,
-      userId: savedUser?.id || null,
-    });
-    setShowCheckoutModal(false);
-    setCustomerInfo({ telegramUsername: savedUser?.telegramUsername || normalized, paymentMethod: 'cash' });
-    alert('Заказ успешно оформлен! Товары удалены из списка доступных.');
+    try {
+      setIsSubmitting(true);
+
+      // Создаём заказ на бэкенде (минимальные данные)
+      await createOrder({
+        customer_name: normalized,
+        customer_email: '',
+        customer_phone: '',
+        items: cartItems,
+        total_amount: getTotalPrice(),
+      });
+
+      // Локальная логика: уведомление в Telegram, история заказов + очистка корзины
+      await checkout({
+        ...customerInfo,
+        telegramUsername: normalized,
+        userId: savedUser?.id || null,
+      });
+
+      setShowCheckoutModal(false);
+      setCustomerInfo({ telegramUsername: savedUser?.telegramUsername || normalized, paymentMethod: 'cash' });
+      setSuccessMessage('Спасибо за заказ! Мы свяжемся с вами в ближайшее время.');
+    } catch (error) {
+      console.error('Ошибка при оформлении заказа из корзины:', error);
+      alert('Произошла ошибка при оформлении заказа. Попробуйте ещё раз.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleCancelCheckout = () => {
@@ -64,6 +87,16 @@ const CartPage = () => {
   };
 
   if (cartItems.length === 0) {
+    if (successMessage) {
+      return (
+        <div className="cart-page">
+          <div className="container">
+            <h1>Спасибо за заказ</h1>
+            <p>{successMessage}</p>
+          </div>
+        </div>
+      );
+    }
     return (
       <div className="cart-page">
         <div className="container">
@@ -186,11 +219,11 @@ const CartPage = () => {
             </div>
             
             <div className="modal-actions">
-              <button onClick={handleCancelCheckout} className="cancel-btn">
+              <button onClick={handleCancelCheckout} className="cancel-btn" disabled={isSubmitting}>
                 Отмена
               </button>
-              <button onClick={handleConfirmCheckout} className="confirm-btn">
-                Подтвердить заказ
+              <button onClick={handleConfirmCheckout} className="confirm-btn" disabled={isSubmitting}>
+                {isSubmitting ? 'Оформление...' : 'Подтвердить заказ'}
               </button>
             </div>
           </div>
