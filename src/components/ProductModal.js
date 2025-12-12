@@ -4,8 +4,19 @@ import './ProductModal.css';
 const ProductModal = ({ product, isOpen, onClose, onAddToCart, selectedFlavor, setSelectedFlavor }) => {
   if (!isOpen || !product) return null;
 
+  // Парсим flavors, если это строка
+  let flavors = {};
+  if (product.flavors) {
+    try {
+      flavors = typeof product.flavors === 'string' ? JSON.parse(product.flavors) : product.flavors;
+    } catch (e) {
+      console.error('Failed to parse flavors in modal:', e);
+      flavors = {};
+    }
+  }
+
   const handleAddToCart = () => {
-    if (product.category === 'liquids' && product.flavors && !selectedFlavor) {
+    if (product.category === 'liquids' && Object.keys(flavors).length > 0 && !selectedFlavor) {
       alert('Пожалуйста, выберите вкус');
       return;
     }
@@ -31,11 +42,11 @@ const ProductModal = ({ product, isOpen, onClose, onAddToCart, selectedFlavor, s
           <p className="modal-description">{product.description}</p>
           <p className="modal-price">{product.price} BYN</p>
 
-          {product.category === 'liquids' && product.flavors && Object.keys(product.flavors).length > 0 && (
+          {product.category === 'liquids' && Object.keys(flavors).length > 0 && (
             <div className="modal-flavors">
               <h3>Выберите вкус:</h3>
               <div className="flavor-list">
-                {Object.entries(product.flavors).map(([flavor, stock]) => (
+                {Object.entries(flavors).map(([flavor, stock]) => (
                   <label key={flavor} className="flavor-option">
                     <input
                       type="radio"
