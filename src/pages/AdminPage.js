@@ -129,26 +129,28 @@ const AdminPage = () => {
         product.id === productId ? { ...product, image: base64Image } : product
       ));
       
-      // Используем специальный endpoint для изображений
-      console.log('Using dedicated image endpoint...');
-      await updateProductImage(productId, base64Image);
-      console.log('Image saved to server for product:', productId);
+      // Используем только основной endpoint
+      console.log('Using main update endpoint...');
+      const product = products.find(p => p.id === productId);
+      if (product) {
+        const updateData = { 
+          id: product.id,
+          name: product.name,
+          description: product.description,
+          price: product.price,
+          category_id: product.category_id,
+          stock: product.stock,
+          flavors: product.flavors,
+          image: base64Image 
+        };
+        
+        console.log('Sending update with image:', updateData);
+        await updateProduct(productId, updateData);
+        console.log('Image saved to server for product:', productId);
+      }
     } catch (error) {
       console.error('Image upload error:', error);
       alert('Ошибка при загрузке изображения: ' + error.message);
-      
-      // Если специальный endpoint не работает, пробуем обычный
-      try {
-        console.log('Trying fallback to regular update...');
-        const product = products.find(p => p.id === productId);
-        if (product) {
-          await updateProduct(productId, { ...product, image: base64Image });
-          console.log('Image saved via fallback for product:', productId);
-        }
-      } catch (fallbackError) {
-        console.error('Fallback also failed:', fallbackError);
-        alert('Не удалось сохранить изображение. Попробуйте еще раз.');
-      }
     } finally {
       setUploadingImage(null);
     }
