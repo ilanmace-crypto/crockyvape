@@ -95,16 +95,12 @@ button:hover, .btn:hover {
 .container {
   max-width: 1200px;
   margin: 0 auto;
-  padding: 0 20px;
 }
 
 .App {
   min-height: 100vh;
-  display: flex;
-  flex-direction: column;
 }
 
 .main-content {
-  flex: 1;
-  padding-top: 80px;
+  padding: 0;
 }

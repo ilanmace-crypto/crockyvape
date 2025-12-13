@@ -122,8 +122,10 @@ const HomePage = () => {
   return (
     <div className="home-page">
       <div className="container">
-        <h1 className="page-title">PARADISE_SHOP</h1>
-        <p className="page-subtitle">Лучший выбор vape продукции</p>
+        <div className="hero-section">
+          <h1 className="page-title">PARADISE_SHOP</h1>
+          <p className="page-subtitle">Лучший выбор vape продукции</p>
+        </div>
         
         <div className="categories">
           <button 
@@ -143,15 +145,19 @@ const HomePage = () => {
           ))}
         </div>
 
-        <div className="products-grid">
+        <div className="products-section">
           {loading ? (
-            <div>Загрузка товаров...</div>
+            <div className="loading-message">Загрузка товаров...</div>
           ) : error ? (
             <div className="error-message">{error}</div>
           ) : filteredProducts.length === 0 ? (
-            <div>Товары не найдены</div>
+            <div className="no-products">
+              <h3>Товары не найдены</h3>
+              <p>Попробуйте выбрать другую категорию или вернитесь позже</p>
+            </div>
           ) : (
-            filteredProducts.map(product => (
+            <div className="products-grid">
+              {filteredProducts.map(product => (
               <div key={product.id} className="product-card">
                 <div className="product-image">
                   {imageErrors[product.id] ? (
@@ -215,24 +221,18 @@ const HomePage = () => {
                   
                   <div className="product-footer">
                     <span className="product-price">{product.price} BYN</span>
-                    <div className="product-actions">
-                      <button 
-                        onClick={() => openModal(product)}
-                        className="product-btn"
-                      >
-                        Подробнее
-                      </button>
-                      <button 
-                        onClick={() => handleAddToCart(product)} 
-                        className="add-to-cart-btn"
-                      >
-                        В корзину
-                      </button>
-                    </div>
+                    <button 
+                      onClick={() => handleAddToCart(product)} 
+                      className="add-to-cart-btn"
+                    >
+                      В корзину
+                    </button>
                   </div>
                 </div>
               </div>
             ))
+            }
+            </div>
           )}
         </div>
       </div>

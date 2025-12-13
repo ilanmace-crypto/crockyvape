@@ -18,13 +18,14 @@
   box-shadow: 0 4px 30px rgba(0, 0, 0, 0.3);
 }
 
-.container {
+.header .container {
   display: flex;
   justify-content: space-between;
   align-items: center;
   max-width: 1200px;
   margin: 0 auto;
-  padding: 0 20px;
+  padding: 0 30px;
+  min-height: 70px;
 }
 
 .logo {
@@ -57,8 +58,9 @@
 
 .nav-links {
   display: flex;
-  gap: 15px;
+  gap: 25px;
   align-items: center;
+  flex-wrap: nowrap;
 }
 
 .nav-link {

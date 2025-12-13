@@ -81,9 +81,6 @@ const Header = () => {
             <Link to="/" className="nav-link" onClick={() => setMobileMenuOpen(false)}>
               Главная
             </Link>
-            <Link to="/products" className="nav-link" onClick={() => setMobileMenuOpen(false)}>
-              Товары
-            </Link>
             <Link to="/cart" className="nav-link cart-link" onClick={() => setMobileMenuOpen(false)}>
               <FiShoppingCart className="icon" />
               <span>Корзина</span>

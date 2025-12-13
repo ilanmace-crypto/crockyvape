@@ -2,16 +2,6 @@
   text-align: left;
 }
 
-.container {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 0 20px;
-}
-
-.main-content {
-  padding: 32px 0 40px;
-}
-
 .App-logo {
   height: 40vmin;
   pointer-events: none;

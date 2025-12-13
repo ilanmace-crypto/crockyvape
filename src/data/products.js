@@ -6,9 +6,78 @@ export const categories = [
   { id: 'disposable', name: 'Одноразовые', description: 'Одноразовые вейпы' }
 ];
 
+// Временные тестовые товары для демонстрации
+const mockProducts = [
+  {
+    id: 1,
+    name: 'Paradise Liquid Gold',
+    description: 'Премиум жидкость с золотым вкусом ананаса и манго',
+    price: 29.99,
+    category: 'liquids',
+    category_name: 'Жидкости',
+    image: 'https://via.placeholder.com/300x200/9d4edd/ffffff?text=Paradise+Gold',
+    flavors: {
+      'Ананас': 15,
+      'Манго': 12,
+      'Золотой ананас': 8
+    }
+  },
+  {
+    id: 2,
+    name: 'Vape Storm Pro',
+    description: 'Мощный одноразовый вейп на 3000 затяжек',
+    price: 49.99,
+    category: 'disposable',
+    category_name: 'Одноразовые',
+    image: 'https://via.placeholder.com/300x200/5a189a/ffffff?text=Vape+Storm'
+  },
+  {
+    id: 3,
+    name: 'Cloud Cartridge X',
+    description: 'Сменный картридж для POD систем',
+    price: 19.99,
+    category: 'cartridges',
+    category_name: 'Картриджи',
+    image: 'https://via.placeholder.com/300x200/ff0a78/ffffff?text=Cloud+X'
+  },
+  {
+    id: 4,
+    name: 'Paradise Berry Mix',
+    description: 'Смесь лесных ягод с холодком',
+    price: 27.99,
+    category: 'liquids',
+    category_name: 'Жидкости',
+    image: 'https://via.placeholder.com/300x200/9d4edd/ffffff?text=Berry+Mix',
+    flavors: {
+      'Клубника': 20,
+      'Черника': 18,
+      'Малина': 10
+    }
+  },
+  {
+    id: 5,
+    name: 'Thunder Disposable',
+    description: 'Компактный одноразовый вейп 1500 затяжек',
+    price: 34.99,
+    category: 'disposable',
+    category_name: 'Одноразовые',
+    image: 'https://via.placeholder.com/300x200/5a189a/ffffff?text=Thunder'
+  },
+  {
+    id: 6,
+    name: 'Premium Pod Kit',
+    description: 'Набор POD систем с двумя картриджами',
+    price: 89.99,
+    category: 'cartridges',
+    category_name: 'Картриджи',
+    image: 'https://via.placeholder.com/300x200/ff0a78/ffffff?text=Premium+Kit'
+  }
+];
+
 // Загрузка всех товаров из API
 export const getProducts = async () => {
   try {
+    // Сначала пробуем загрузить из API
     const data = await fetchProducts();
     return data.map(product => {
       // Map backend category_name to frontend category id
@@ -40,8 +109,9 @@ export const getProducts = async () => {
       };
     });
   } catch (error) {
-    console.error('Error loading products from API:', error);
-    throw error;
+    console.warn('API недоступен, используем тестовые данные:', error);
+    // Если API недоступен, возвращаем тестовые товары
+    return mockProducts;
   }
 };
 
