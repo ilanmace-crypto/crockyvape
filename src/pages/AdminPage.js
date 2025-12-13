@@ -119,11 +119,21 @@ const AdminPage = () => {
     
     try {
       const base64Image = await fileToBase64(file);
+      
+      // Обновляем локальное состояние
       setProducts(prev => prev.map(product => 
         product.id === productId ? { ...product, image: base64Image } : product
       ));
+      
+      // Сразу сохраняем на сервер
+      const product = products.find(p => p.id === productId);
+      if (product) {
+        await updateProduct(productId, { ...product, image: base64Image });
+        console.log('Image saved to server for product:', productId);
+      }
     } catch (error) {
       alert('Ошибка при загрузке изображения: ' + error.message);
+      console.error('Image upload error:', error);
     } finally {
       setUploadingImage(null);
     }
@@ -176,6 +186,7 @@ const AdminPage = () => {
         const payload = {
           ...product,
           category_id,
+          image: product.image, // Убедимся что изображение включено в payload
         };
         console.log('Saving product payload:', payload);
 
