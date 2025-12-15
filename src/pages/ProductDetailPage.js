@@ -10,7 +10,7 @@ const ProductDetailPage = () => {
   const [product, setProduct] = useState(null);
   const [selectedFlavor, setSelectedFlavor] = useState('');
   const [quantity, setQuantity] = useState(1);
-  const [showFlavorDropdown, setShowFlavorDropdown] = useState(false);
+  const [showFlavorModal, setShowFlavorModal] = useState(false);
   const { addToCartWithFlavor } = useCart();
 
   useEffect(() => {
@@ -23,6 +23,14 @@ const ProductDetailPage = () => {
       setSelectedFlavor(firstFlavor);
     }
   }, [id]);
+
+  const openFlavorModal = () => {
+    setShowFlavorModal(true);
+  };
+
+  const closeFlavorModal = () => {
+    setShowFlavorModal(false);
+  };
 
   const handleAddToCart = () => {
     if (product.category === 'liquids') {
@@ -73,37 +81,13 @@ const ProductDetailPage = () => {
             {product.category === 'liquids' && product.flavors && (
               <div className="flavor-selector">
                 <label>Выберите вкус:</label>
-                <div className="flavor-dropdown">
-                  <button 
-                    className="flavor-dropdown-btn"
-                    onClick={() => setShowFlavorDropdown(!showFlavorDropdown)}
-                  >
-                    {selectedFlavor || 'Выберите вкус'} ↓
-                  </button>
-                  
-                  {showFlavorDropdown && (
-                    <div className="flavor-dropdown-content">
-                      {Object.entries(product.flavors).map(([flavor, stock]) => (
-                        <div 
-                          key={flavor}
-                          className={`flavor-option ${stock === 0 ? 'out-of-stock' : ''}`}
-                          onClick={() => {
-                            if (stock > 0) {
-                              setSelectedFlavor(flavor);
-                              setShowFlavorDropdown(false);
-                              setQuantity(1);
-                            }
-                          }}
-                        >
-                          <span className="flavor-name">{flavor}</span>
-                          <span className="flavor-stock">
-                            {stock > 0 ? `${stock} банок` : 'Нет в наличии'}
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
+                <button
+                  type="button"
+                  className="flavor-dropdown-btn"
+                  onClick={openFlavorModal}
+                >
+                  {selectedFlavor || 'Выберите вкус'} ↓
+                </button>
               </div>
             )}
             
@@ -150,6 +134,37 @@ const ProductDetailPage = () => {
                 {!product.inStock ? 'Нет в наличии' : 'Добавить в корзину'}
               </button>
             </div>
+
+            {showFlavorModal && product.category === 'liquids' && product.flavors && (
+              <div className="flavor-modal-overlay" onClick={closeFlavorModal}>
+                <div className="flavor-modal" onClick={(e) => e.stopPropagation()}>
+                  <div className="flavor-modal-header">
+                    <div className="flavor-modal-title">Выберите вкус</div>
+                    <button className="flavor-modal-close" onClick={closeFlavorModal} type="button">×</button>
+                  </div>
+                  <div className="flavor-modal-list">
+                    {Object.entries(product.flavors).map(([flavor, stock]) => (
+                      <button
+                        key={flavor}
+                        type="button"
+                        className={`flavor-modal-item ${stock === 0 ? 'out-of-stock' : ''}`}
+                        onClick={() => {
+                          if (stock > 0) {
+                            setSelectedFlavor(flavor);
+                            setQuantity(1);
+                            closeFlavorModal();
+                          }
+                        }}
+                        disabled={stock === 0}
+                      >
+                        <span className="flavor-name">{flavor}</span>
+                        <span className="flavor-stock">{stock > 0 ? `${stock} банок` : 'Нет в наличии'}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>

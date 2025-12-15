@@ -9,7 +9,7 @@ const HomePage = () => {
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [products, setProducts] = useState([]);
   const [selectedFlavors, setSelectedFlavors] = useState({});
-  const [showFlavorDropdown, setShowFlavorDropdown] = useState({});
+  const [flavorModalProductId, setFlavorModalProductId] = useState(null);
   const [imageErrors, setImageErrors] = useState({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -77,17 +77,15 @@ const HomePage = () => {
       ...prev,
       [productId]: flavor
     }));
-    setShowFlavorDropdown(prev => ({
-      ...prev,
-      [productId]: false
-    }));
+    setFlavorModalProductId(null);
   };
 
-  const toggleFlavorDropdown = (productId) => {
-    setShowFlavorDropdown(prev => ({
-      ...prev,
-      [productId]: !prev[productId]
-    }));
+  const openFlavorModal = (productId) => {
+    setFlavorModalProductId(productId);
+  };
+
+  const closeFlavorModal = () => {
+    setFlavorModalProductId(null);
   };
 
   const handleImageError = (productId) => {
@@ -134,7 +132,7 @@ const HomePage = () => {
           >
             Все товары
           </button>
-          {categories.map(category => (
+          {categories.filter((c) => c.id === 'liquids').map(category => (
             <button
               key={category.id}
               className={`category-btn ${selectedCategory === category.id ? 'active' : ''}`}
@@ -193,35 +191,13 @@ const HomePage = () => {
                   {product.category === 'liquids' && product.flavors && Object.keys(product.flavors).length > 0 && (
                     <div className="flavor-selector">
                       <label>Выберите вкус:</label>
-                      <div className="flavor-dropdown">
-                        <button 
-                          className="flavor-dropdown-btn"
-                          onClick={() => toggleFlavorDropdown(product.id)}
-                        >
-                          {selectedFlavors[product.id] || 'Выберите вкус'} ↓
-                        </button>
-                        
-                        {showFlavorDropdown[product.id] && (
-                          <div className="flavor-dropdown-content">
-                            {Object.entries(product.flavors).map(([flavor, stock]) => (
-                              <div 
-                                key={flavor}
-                                className={`flavor-option ${stock === 0 ? 'out-of-stock' : ''}`}
-                                onClick={() => {
-                                  if (stock > 0) {
-                                    handleFlavorSelect(product.id, flavor);
-                                  }
-                                }}
-                              >
-                                <span className="flavor-name">{flavor}</span>
-                                <span className="flavor-stock">
-                                  {stock > 0 ? `${stock} банок` : 'Нет в наличии'}
-                                </span>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                      </div>
+                      <button
+                        type="button"
+                        className="flavor-dropdown-btn"
+                        onClick={() => openFlavorModal(product.id)}
+                      >
+                        {selectedFlavors[product.id] || 'Выберите вкус'} ↓
+                      </button>
                     </div>
                   )}
                   
@@ -251,6 +227,37 @@ const HomePage = () => {
         selectedFlavor={modalSelectedFlavor}
         setSelectedFlavor={setModalSelectedFlavor}
       />
+
+      {flavorModalProductId !== null && (() => {
+        const product = products.find((p) => p.id === flavorModalProductId);
+        if (!product || !product.flavors) return null;
+        return (
+          <div className="flavor-modal-overlay" onClick={closeFlavorModal}>
+            <div className="flavor-modal" onClick={(e) => e.stopPropagation()}>
+              <div className="flavor-modal-header">
+                <div className="flavor-modal-title">Выберите вкус</div>
+                <button className="flavor-modal-close" onClick={closeFlavorModal} type="button">×</button>
+              </div>
+              <div className="flavor-modal-list">
+                {Object.entries(product.flavors).map(([flavor, stock]) => (
+                  <button
+                    key={flavor}
+                    type="button"
+                    className={`flavor-modal-item ${stock === 0 ? 'out-of-stock' : ''}`}
+                    onClick={() => {
+                      if (stock > 0) handleFlavorSelect(product.id, flavor);
+                    }}
+                    disabled={stock === 0}
+                  >
+                    <span className="flavor-name">{flavor}</span>
+                    <span className="flavor-stock">{stock > 0 ? `${stock} банок` : 'Нет в наличии'}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 };

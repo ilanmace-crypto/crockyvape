@@ -410,6 +410,109 @@
   color: #ff6b6b;
 }
 
+.flavor-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.65);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  z-index: 2500;
+  padding: 16px;
+}
+
+.flavor-modal {
+  width: 100%;
+  max-width: 520px;
+  background: linear-gradient(145deg, rgba(25, 25, 40, 0.98), rgba(15, 15, 25, 0.98));
+  border: 1px solid rgba(157, 78, 221, 0.35);
+  border-radius: 16px;
+  box-shadow: 0 18px 60px rgba(0, 0, 0, 0.65);
+  overflow: hidden;
+}
+
+.flavor-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.flavor-modal-title {
+  color: #fff;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  font-size: 0.95rem;
+}
+
+.flavor-modal-close {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  border: 1px solid rgba(157, 78, 221, 0.35);
+  background: rgba(255, 255, 255, 0.06);
+  color: #fff;
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.flavor-modal-list {
+  max-height: min(60vh, 420px);
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: 10px;
+}
+
+.flavor-modal-item {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 12px 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(255, 255, 255, 0.03);
+  cursor: pointer;
+  transition: transform 0.15s ease, background 0.2s ease, border-color 0.2s ease;
+}
+
+.flavor-modal-item + .flavor-modal-item {
+  margin-top: 8px;
+}
+
+.flavor-modal-item:hover:not(:disabled) {
+  background: linear-gradient(90deg, rgba(157, 78, 221, 0.22), rgba(90, 24, 154, 0.22));
+  border-color: rgba(157, 78, 221, 0.35);
+  transform: translateY(-1px);
+}
+
+.flavor-modal-item:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.flavor-modal-item .flavor-name {
+  color: #fff;
+  font-weight: 500;
+}
+
+.flavor-modal-item .flavor-stock {
+  color: #9d4edd;
+  font-weight: 700;
+  background: rgba(157, 78, 221, 0.12);
+  padding: 2px 10px;
+  border-radius: 999px;
+}
+
+.flavor-modal-item.out-of-stock .flavor-stock {
+  color: #ff6b6b;
+  background: rgba(255, 107, 107, 0.14);
+}
+
 .product-footer {
   display: flex !important;
   justify-content: space-between !important;
