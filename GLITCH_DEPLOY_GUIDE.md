@@ -21,33 +21,23 @@
 
 2. Установи зависимости:
    - Нажми "Tools" → "Terminal"
-   - Введи: `npm install express pg cors body-parser dotenv`
+   - Введи: `npm install sqlite3 express cors body-parser dotenv`
 
-## Шаг 4: Настройка базы данных
-1. В проекте Glitch нажми ".env" (в левом меню)
-2. Добавь переменные окружения:
-   ```
-   NODE_ENV=production
-   DATABASE_URL=postgresql://username:password@host:port/database
-   ```
+## Шаг 4: Настройка базы данных (SQLite)
+**SQLite работает из коробки на Glitch!**
 
-3. Для тестов можно использовать бесплатную PostgreSQL:
-   - Создай аккаунт на https://elephantsql.com
-   - Создай базу данных
-   - Скопируй connection string
+1. База данных создается автоматически в файле `paradise-shop.db`
+2. Таблицы создаются при первом запуске
+3. Данные сохраняются между перезапусками
 
-## Шаг 5: Инициализация базы данных
-1. В Terminal Glitch введи:
-   ```bash
-   node server/init-db.js
-   ```
+**Никакой дополнительной настройки не нужно!**
 
-## Шаг 6: Запуск проекта
+## Шаг 5: Запуск проекта
 1. Нажми "Show" (вверху) → "In a new window"
 2. Сайт откроется по адресу: `https://project-name.glitch.me`
 3. API будет доступен на: `https://project-name.glitch.me/api`
 
-## Шаг 7: Проверка работы
+## Шаг 6: Проверка работы
 1. Проверь API: `https://project-name.glitch.me/api/health`
 2. Проверь товары: `https://project-name.glitch.me/api/products`
 3. Открой фронтенд: `https://project-name.glitch.me`
@@ -66,8 +56,10 @@
 - **Просыпается** при первом запросе (3-5 секунд)
 
 ## Если база данных не работает:
-1. Используй mock data (уже настроено в server-glitch.js)
-2. Или создай бесплатную PostgreSQL на ElephantSQL
+SQLite работает из коробки на Glitch, но если будут проблемы:
+1. Проверь файл `paradise-shop.db` в проекте
+2. Перезапусти проект (кнопка Restart)
+3. Проверь консоль логи в Terminal
 
 ## Готово!
 Твой проект будет доступен на Glitch с бэкендом и фронтендом вместе!
