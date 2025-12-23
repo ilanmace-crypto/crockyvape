@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "scripts": {
     "start": "cd server && node server.js",
-    "build": "cd client && npm run build",
+    "build": "cd client && npm install && npm run build",
     "dev": "concurrently \"cd server && npm run dev\" \"cd client && npm start\""
   },
   "dependencies": {
