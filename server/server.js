@@ -4,9 +4,17 @@ const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 require('dotenv').config();
 
-const apiRoutes = require('./routes/api_sqlite');
-const adminRoutes = require('./routes/admin_sqlite');
-const { initDatabase } = require('./config/sqlite');
+// Используем PostgreSQL если DATABASE_URL задан, иначе SQLite
+const apiRoutes = process.env.DATABASE_URL ? 
+  require('./routes/api_postgresql') : 
+  require('./routes/api_sqlite');
+const adminRoutes = process.env.DATABASE_URL ? 
+  require('./routes/admin_postgresql') : 
+  require('./routes/admin_sqlite');
+
+const initDatabase = process.env.DATABASE_URL ? 
+  require('./config/postgresql_init').initPostgresDatabase : 
+  require('./config/sqlite').initDatabase;
 
 const app = express();
 const PORT = process.env.PORT || 3001;
