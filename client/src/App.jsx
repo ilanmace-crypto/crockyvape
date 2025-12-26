@@ -370,10 +370,19 @@ function App() {
         console.error('Error loading products:', error)
       } finally {
         setProductsLoading(false)
-        setLoading(false) // Скрываем preloader после загрузки товаров
+        setLoading(false) // Скрываем preloader в любом случае
       }
     }
+    
+    // Добавляем таймаут на случай если API не отвечает
+    const timeoutId = setTimeout(() => {
+      setLoading(false)
+      setProductsLoading(false)
+    }, 5000) // 5 секунд максимум
+    
     loadProducts()
+    
+    return () => clearTimeout(timeoutId)
   }, [])
 
   useEffect(() => {
