@@ -1,4 +1,4 @@
-import ApiService from "./services/api.js"
+import { productService } from "./services/productService"
 import { useEffect, useMemo, useState } from 'react'
 import './App.css'
 import logo from './assets/paradise-shop-logo.svg'
@@ -8,38 +8,6 @@ const TABS = [
   { key: 'consumables', label: 'Расходники' },
   { key: 'reviews', label: 'Отзывы' },
 ]
-
-const MOCK_PRODUCTS = {
-  liquids: [
-    {
-      id: 'liq-1',
-      name: 'PARADISE Liquid 30ml',
-      price: 25,
-      category: 'liquids',
-      flavors: ['Mango Ice', 'Blueberry', 'Cola Lime', 'Grape', 'Strawberry Kiwi'],
-    },
-    {
-      id: 'liq-2',
-      name: 'Salt 20mg 30ml',
-      price: 28,
-      category: 'liquids',
-      flavors: ['Watermelon', 'Apple', 'Energy', 'Peach Ice'],
-    },
-    {
-      id: 'liq-3',
-      name: 'Premium Mix 60ml',
-      price: 45,
-      category: 'liquids',
-      flavors: ['Vanilla Custard', 'Tobacco', 'Berry Mix'],
-    },
-  ],
-  consumables: [
-    { id: 'con-1', name: 'Картридж (POD) 1.0Ω', price: 12, category: 'consumables' },
-    { id: 'con-2', name: 'Испаритель 0.6Ω', price: 15, category: 'consumables' },
-    { id: 'con-3', name: 'Вата + проволока (сет)', price: 18, category: 'consumables' },
-    { id: 'con-4', name: 'Сет картриджей (2шт)', price: 20, category: 'consumables' },
-  ],
-}
 
 function Preloader({ visible }) {
   return (
@@ -385,6 +353,24 @@ function App() {
   const [cartOpen, setCartOpen] = useState(false)
   const [cartItems, setCartItems] = useState([])
   const [searchQuery, setSearchQuery] = useState('')
+  const [products, setProducts] = useState([])
+  const [productsLoading, setProductsLoading] = useState(true)
+
+  // Загрузка товаров с API
+  useEffect(() => {
+    const loadProducts = async () => {
+      try {
+        const productsData = await productService.getProducts()
+        setProducts(productsData)
+      } catch (error) {
+        console.error('Error loading products:', error)
+      } finally {
+        setProductsLoading(false)
+      }
+    }
+    loadProducts()
+  }, [])
+
   useEffect(() => {
     const webApp = window.Telegram?.WebApp
     if (!webApp) return
@@ -487,7 +473,7 @@ function App() {
       {activeTab === 'liquids' && (
         <ProductGrid
           title="Жидкости"
-          products={MOCK_PRODUCTS.liquids}
+          products={products.filter(p => p.category === 'liquids')}
           onOpenProduct={(p) => setActiveProduct(p)}
           query={searchQuery}
         />
@@ -495,7 +481,7 @@ function App() {
       {activeTab === 'consumables' && (
         <ProductGrid
           title="Расходники"
-          products={MOCK_PRODUCTS.consumables}
+          products={products.filter(p => p.category === 'consumables')}
           onOpenProduct={(p) => setActiveProduct(p)}
           query={searchQuery}
         />
