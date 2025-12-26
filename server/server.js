@@ -8,7 +8,7 @@ require('dotenv').config();
 const productsRouter = require('./routes/products');
 
 const app = express();
-const PORT = process.env.PORT || 3001;
+const PORT = process.env.PORT || 3000; // Railway использует порт 3000
 
 // Trust proxy для Railway и других хостингов
 app.set('trust proxy', 1);
