@@ -4,18 +4,8 @@ const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 require('dotenv').config();
 
-// Используем PostgreSQL если DATABASE_URL задан
-console.log('DATABASE_URL:', process.env.DATABASE_URL ? 'SET' : 'NOT SET');
-const apiRoutes = process.env.DATABASE_URL ? 
-  require('./routes/api_postgresql') : 
-  null;
-const adminRoutes = process.env.DATABASE_URL ? 
-  require('./routes/admin_postgresql') : 
-  null;
-
-const initDatabase = process.env.DATABASE_URL ? 
-  require('./config/postgresql_init').initPostgresDatabase : 
-  null;
+// Подключаем роуты
+const productsRouter = require('./routes/products');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -45,10 +35,7 @@ const limiter = rateLimit({
 app.use('/api/', limiter);
 
 // Routes
-console.log('API Routes:', apiRoutes ? 'LOADED' : 'NOT LOADED');
-console.log('Admin Routes:', adminRoutes ? 'LOADED' : 'NOT LOADED');
-if (apiRoutes) app.use('/api', apiRoutes);
-if (adminRoutes) app.use('/admin', adminRoutes);
+app.use('/api/products', productsRouter);
 
 // Debug route
 app.get('/api/debug', (req, res) => {
@@ -56,8 +43,7 @@ app.get('/api/debug', (req, res) => {
     message: 'Debug route working',
     timestamp: new Date().toISOString(),
     routes: {
-      api: apiRoutes ? 'loaded' : 'not loaded',
-      admin: adminRoutes ? 'loaded' : 'not loaded'
+      products: 'loaded'
     },
     proxy: {
       trust: app.get('trust proxy'),
@@ -94,21 +80,10 @@ app.use((req, res) => {
   res.status(404).json({ error: 'Route not found' });
 });
 
-app.listen(PORT, async () => {
+app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
   console.log(`Health check: http://localhost:${PORT}/health`);
+  console.log(`Products API: http://localhost:${PORT}/api/products`);
   console.log(`Trust proxy: ${app.get('trust proxy')}`);
-  
-  // Initialize database
-  try {
-    if (initDatabase) {
-      await initDatabase();
-      console.log('Database initialized successfully!');
-    } else {
-      console.log('No database configured - running without database');
-    }
-  } catch (error) {
-    console.error('Database initialization failed:', error);
-    // Don't exit, let server start anyway
-  }
+  console.log('Products API ready!');
 });
