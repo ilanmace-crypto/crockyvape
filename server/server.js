@@ -62,6 +62,23 @@ app.get('/health', (req, res) => {
       trust: app.get('trust proxy'),
       forwarded: req.headers['x-forwarded-for'],
       remote: req.ip
+    },
+    routes: {
+      products: 'loaded'
+    }
+  });
+});
+
+// Root route для Railway
+app.get('/', (req, res) => {
+  res.status(200).json({ 
+    message: 'PARADISE SHOP API Server',
+    status: 'OK',
+    timestamp: new Date().toISOString(),
+    endpoints: {
+      health: '/health',
+      products: '/api/products',
+      debug: '/api/debug'
     }
   });
 });
