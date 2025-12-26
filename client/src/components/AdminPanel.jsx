@@ -21,32 +21,33 @@ const AdminPanel = ({ onLogout }) => {
     setLoading(true);
     try {
       // Загрузка товаров
-      const productsResponse = await fetch('/api/products');
+      const productsResponse = await fetch('https://paradise-shop-api-production.up.railway.app/api/products');
       if (productsResponse.ok) {
         const productsData = await productsResponse.json();
         setProducts(productsData);
+      } else {
+        throw new Error('Failed to load products');
       }
       
-      // Загрузка заказов
-      const ordersResponse = await fetch('/api/orders');
-      if (ordersResponse.ok) {
-        const ordersData = await ordersResponse.json();
-        setOrders(ordersData);
-      }
+      // Временно загружаем мок данные для заказов и пользователей
+      setOrders([
+        { id: 1, customer: 'User1', items: 2, total: 50, status: 'pending', date: '26.12.2024' },
+        { id: 2, customer: 'User2', items: 1, total: 25, status: 'completed', date: '26.12.2024' }
+      ]);
       
-      // Загрузка пользователей
-      const usersResponse = await fetch('/api/users');
-      if (usersResponse.ok) {
-        const usersData = await usersResponse.json();
-        setUsers(usersData);
-      }
+      setUsers([
+        { id: 1, name: 'User1', email: 'user1@example.com', orders: 2, total: 50 },
+        { id: 2, name: 'User2', email: 'user2@example.com', orders: 1, total: 25 }
+      ]);
       
-      // Загрузка статистики
-      const statsResponse = await fetch('/api/stats');
-      if (statsResponse.ok) {
-        const statsData = await statsResponse.json();
-        setStats(statsData);
-      }
+      setStats({
+        totalOrders: 2,
+        totalRevenue: 75,
+        totalUsers: 2,
+        avgOrderValue: 37.5,
+        topProducts: ['PARADISE Liquid 30ml', 'Salt 20mg 30ml']
+      });
+      
     } catch (err) {
       setError(err.message);
     } finally {
@@ -56,7 +57,7 @@ const AdminPanel = ({ onLogout }) => {
 
   const handleAddProduct = async (product) => {
     try {
-      const response = await fetch('/api/products', {
+      const response = await fetch('https://paradise-shop-api-production.up.railway.app/api/products', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -78,7 +79,7 @@ const AdminPanel = ({ onLogout }) => {
 
   const handleEditProduct = async (product) => {
     try {
-      const response = await fetch(`/api/products/${product.id}`, {
+      const response = await fetch(`https://paradise-shop-api-production.up.railway.app/api/products/${product.id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -102,7 +103,7 @@ const AdminPanel = ({ onLogout }) => {
     if (!confirm('Удалить товар?')) return;
     
     try {
-      const response = await fetch(`/api/products/${id}`, {
+      const response = await fetch(`https://paradise-shop-api-production.up.railway.app/api/products/${id}`, {
         method: 'DELETE',
       });
       
