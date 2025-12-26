@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
+import { HashRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
 import './App.css'
 import logo from './assets/paradise-shop-logo.svg'
 import AdminLogin from './components/AdminLogin'
@@ -38,7 +38,7 @@ function Header() {
           </div>
         </div>
         <div className="header-actions">
-          <a href="/admin" className="admin-link">Админ</a>
+          <a href="#/admin" className="admin-link">Админ</a>
           <button type="button" className="cart-chip" onClick={() => {}}>
             Корзина
           </button>
@@ -60,7 +60,7 @@ function HeaderWithCart({ cartCount, onOpenCart }) {
           </div>
         </div>
         <div className="header-actions">
-          <a href="/admin" className="admin-link">Админ</a>
+          <a href="#/admin" className="admin-link">Админ</a>
           <button type="button" className="cart-chip" onClick={onOpenCart}>
             Корзина {cartCount > 0 && <span className="cart-count">{cartCount}</span>}
           </button>
