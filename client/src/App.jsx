@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { HashRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
 import './App.css'
 import logo from './assets/paradise-shop-logo.svg'
+import ApiService from './services/api'
 import AdminLogin from './components/AdminLogin'
 import AdminPanel from './components/AdminPanel'
 
@@ -21,6 +22,58 @@ function Preloader({ visible }) {
         </div>
         <div className="preloader-title">PARADISE-SHOP</div>
         <div className="preloader-subtitle">Загружаем каталог…</div>
+      </div>
+    </div>
+  )
+}
+
+function CheckoutModal({ open, onClose, onSubmit, submitting }) {
+  const [form, setForm] = useState({
+    telegram_username: '',
+  })
+
+  useEffect(() => {
+    if (!open) return
+    setForm({ telegram_username: '' })
+  }, [open])
+
+  if (!open) return null
+
+  return (
+    <div className="modal-overlay active" onClick={onClose}>
+      <div className="modal" onClick={(e) => e.stopPropagation()}>
+        <div className="modal-header">
+          <div className="modal-title">Оформление заказа</div>
+          <button type="button" className="modal-close" onClick={onClose}>
+            ×
+          </button>
+        </div>
+
+        <div className="modal-body">
+          <div className="section">
+            <div className="section-title">Твой Telegram username</div>
+            <input
+              className="input"
+              placeholder="например: ilanmace (без @)"
+              value={form.telegram_username}
+              onChange={(e) => setForm((p) => ({ ...p, telegram_username: e.target.value }))}
+            />
+          </div>
+        </div>
+
+        <div className="modal-footer">
+          <button type="button" className="modal-btn secondary" onClick={onClose}>
+            Отмена
+          </button>
+          <button
+            type="button"
+            className="modal-btn primary"
+            disabled={submitting}
+            onClick={() => onSubmit(form)}
+          >
+            {submitting ? 'Отправляем…' : 'Подтвердить'}
+          </button>
+        </div>
       </div>
     </div>
   )
@@ -149,7 +202,7 @@ function ProductModal({ product, onClose, onAdd }) {
   const canAdd = qty > 0 && (normalizedFlavors.length === 0 || selectedFlavor)
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
+    <div className="modal-overlay active" onClick={onClose}>
       <div className="modal" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
           <div className="modal-title">{product.name}</div>
@@ -282,7 +335,7 @@ function CartDrawer({ open, items, onClose, onDec, onInc, onRemove, onClear }) {
             type="button"
             className="checkout-btn"
             disabled={items.length === 0}
-            onClick={() => alert('Дальше сделаем оформление + списание остатков через API')}
+            onClick={() => onClose('checkout')}
           >
             Оформить
           </button>
@@ -322,12 +375,14 @@ function ReviewsPlaceholder() {
 }
 
 function MainApp() {
-  const [activeTab, setActiveTab] = useState('liquids')
   const [loading, setLoading] = useState(true)
+  const [searchQuery, setSearchQuery] = useState('')
+  const [activeTab, setActiveTab] = useState('liquids')
   const [activeProduct, setActiveProduct] = useState(null)
   const [cartOpen, setCartOpen] = useState(false)
   const [cartItems, setCartItems] = useState([])
-  const [searchQuery, setSearchQuery] = useState('')
+  const [checkoutOpen, setCheckoutOpen] = useState(false)
+  const [checkoutSubmitting, setCheckoutSubmitting] = useState(false)
   const [products, setProducts] = useState([])
 
   // Загрузка товаров с API
@@ -373,17 +428,6 @@ function MainApp() {
     loadProducts()
   }, [])
 
-  useEffect(() => {
-    const webApp = window.Telegram?.WebApp
-    if (!webApp) return
-    try {
-      webApp.ready()
-      webApp.expand()
-    } catch {
-      // ignore
-    }
-  }, [])
-
   const cartCount = useMemo(() => cartItems.reduce((sum, it) => sum + it.qty, 0), [cartItems])
 
   const addToCart = (product, flavor, qty) => {
@@ -426,6 +470,54 @@ function MainApp() {
     setCartItems((prev) => prev.filter((x) => x.key !== item.key))
   }
 
+  const startCheckout = () => {
+    setCheckoutOpen(true)
+  }
+
+  const submitCheckout = async ({ telegram_username }) => {
+    if (checkoutSubmitting) return
+    setCheckoutSubmitting(true)
+    try {
+      const cleanUsername = String(telegram_username || '')
+        .trim()
+        .replace(/^@/, '')
+
+      if (!cleanUsername) {
+        throw new Error('Введи свой Telegram username')
+      }
+
+      const items = cartItems.map((it) => ({
+        product_id: it.id,
+        flavor_name: it.flavor || null,
+        quantity: it.qty,
+        price: it.price,
+      }))
+
+      const total_amount = items.reduce((sum, it) => sum + Number(it.price) * Number(it.quantity), 0)
+
+      const payload = {
+        total_amount,
+        items,
+        telegram_user: {
+          telegram_id: `username:${cleanUsername}`,
+          telegram_username: cleanUsername,
+        },
+      }
+
+      const res = await ApiService.createOrder(payload)
+      if (!res) throw new Error('Не удалось оформить заказ')
+
+      setCartItems([])
+      setCheckoutOpen(false)
+      setCartOpen(false)
+      alert('Заказ оформлен! Мы скоро свяжемся с тобой.')
+    } catch (e) {
+      alert(e?.message || 'Ошибка оформления заказа')
+    } finally {
+      setCheckoutSubmitting(false)
+    }
+  }
+
   return (
     <div className="app">
       <Preloader visible={loading} />
@@ -454,11 +546,20 @@ function MainApp() {
           <CartDrawer
             open={cartOpen}
             items={cartItems}
-            onClose={() => setCartOpen(false)}
+            onClose={(next) => {
+              if (next === 'checkout') return startCheckout()
+              setCartOpen(false)
+            }}
             onDec={decItem}
             onInc={incItem}
             onRemove={removeItem}
             onClear={() => setCartItems([])}
+          />
+          <CheckoutModal
+            open={checkoutOpen}
+            onClose={() => setCheckoutOpen(false)}
+            onSubmit={submitCheckout}
+            submitting={checkoutSubmitting}
           />
         </div>
       </main>
