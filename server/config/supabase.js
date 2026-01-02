@@ -1,13 +1,18 @@
 const { Pool } = require('pg');
 require('dotenv').config();
 
-// Supabase PostgreSQL configuration
+if (!process.env.DATABASE_URL) {
+  throw new Error('DATABASE_URL is not set');
+}
+
+// PostgreSQL configuration (Neon/Supabase)
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
-  ssl: false, // Отключаем SSL для теста
-  max: 5,
+  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
+  max: 2,
   idleTimeoutMillis: 30000,
   connectionTimeoutMillis: 15000,
+  keepAlive: true,
 });
 
 // Test connection
