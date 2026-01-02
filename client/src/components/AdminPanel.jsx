@@ -225,7 +225,10 @@ const AdminPanel = ({ onLogout }) => {
     <div className="admin-section">
       <div className="section-header">
         <h3>Управление товарами</h3>
-        <button className="admin-button primary" onClick={() => setShowAddProduct(true)}>
+        <button className="admin-button primary" onClick={() => {
+          alert('Клик по кнопке Добавить товар сработал!');
+          setShowAddProduct(true);
+        }}>
           + Добавить товар
         </button>
       </div>
@@ -498,11 +501,22 @@ function ProductForm({ product, onSubmit, onCancel }) {
   };
 
   return (
-    <div className="modal-overlay">
-      <div className="modal">
+    <div className="modal-overlay" onClick={onClose} style={{
+      position: 'fixed',
+      top: 0, left: 0, right: 0, bottom: 0,
+      background: 'rgba(255, 0, 0, 0.9)',
+      display: 'flex',
+      justifyContent: 'center',
+      alignItems: 'center',
+      zIndex: 999999,
+      fontSize: 32,
+      color: '#fff',
+      fontWeight: 'bold'
+    }}>
+      <div className="modal" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
           <h3>{product ? 'Редактировать товар' : 'Добавить товар'}</h3>
-          <button className="modal-close" onClick={onCancel}>×</button>
+          <button className="modal-close" onClick={onClose}>×</button>
         </div>
         <form onSubmit={handleSubmit} className="product-form">
           <div className="form-group">
