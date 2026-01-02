@@ -15,15 +15,15 @@ async function setupAdmin() {
       )
     `);
 
-    // Создаем админа admin/admin
-    const hashedPassword = await bcrypt.hash('admin', 10);
+    // Создаем админа admin/paradise251208
+    const hashedPassword = await bcrypt.hash('paradise251208', 10);
     
     await pool.execute(`
       INSERT IGNORE INTO admins (username, password_hash, role) 
       VALUES (?, ?, 'admin')
     `, ['admin', hashedPassword]);
 
-    console.log('Админ создан: admin/admin');
+    console.log('Админ создан: admin/paradise251208');
     process.exit(0);
   } catch (error) {
     console.error('Ошибка:', error);

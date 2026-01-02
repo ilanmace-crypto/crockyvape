@@ -376,6 +376,27 @@ button {
   opacity: 0.7;
 }
 
+/* Modal Overlay */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(4px);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 240ms ease;
+}
+
+.checkout-modal-overlay {
+  z-index: 300;
+}
+
+.modal-overlay.active {
+  opacity: 1;
+  pointer-events: all;
+}
+
 /* Cart Drawer */
 .cart-drawer-overlay {
   position: fixed;

@@ -40,8 +40,8 @@ function CheckoutModal({ open, onClose, onSubmit, submitting }) {
   if (!open) return null
 
   return (
-    <div className="modal-overlay active" onClick={onClose}>
-      <div className="modal" onClick={(e) => e.stopPropagation()}>
+    <div className="modal-overlay checkout-modal-overlay active" onClick={onClose}>
+      <div className="modal checkout-modal" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
           <div className="modal-title">Оформление заказа</div>
           <button type="button" className="modal-close" onClick={onClose}>
@@ -54,7 +54,7 @@ function CheckoutModal({ open, onClose, onSubmit, submitting }) {
             <div className="section-title">Твой Telegram username</div>
             <input
               className="input"
-              placeholder="например: ilanmace (без @)"
+              placeholder="Твой Telegram username"
               value={form.telegram_username}
               onChange={(e) => setForm((p) => ({ ...p, telegram_username: e.target.value }))}
             />
