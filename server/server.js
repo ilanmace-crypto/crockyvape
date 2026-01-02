@@ -55,6 +55,11 @@ app.use('/api/products', productsRouter);
 app.use('/api/orders', ordersRouter);
 app.use('/api/users', usersRouter);
 app.use('/api/stats', statsRouter);
+
+// UI redirect to React admin (HashRouter)
+app.get(['/admin', '/admin/'], (req, res) => {
+  res.redirect('/#/admin');
+});
 app.use('/admin', adminRouter);
 
 // Debug route
