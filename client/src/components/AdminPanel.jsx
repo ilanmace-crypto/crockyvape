@@ -478,231 +478,35 @@ const AdminPanel = ({ onLogout }) => {
 };
 
 function ProductForm({ product, onSubmit, onCancel }) {
-  const initialFlavors = Array.isArray(product?.flavors)
-    ? product.flavors.map((f) => {
-      if (typeof f === 'string') {
-        return { name: f, stock: 0 };
-      }
-      return {
-        name: f.flavor_name || f.name || '',
-        stock: Number(f.stock ?? 0)
-      };
-    }).filter((f) => f.name)
-    : [];
-
-  const [formData, setFormData] = useState({
-    name: product?.name || '',
-    price: product?.price || '',
-    category: product?.category || (Number(product?.category_id) === 2 ? 'consumables' : 'liquids'),
-    stock: product?.stock || '',
-    flavors: initialFlavors.length > 0 ? initialFlavors : [{ name: '', stock: 0 }],
-  });
-
-  const [submitting, setSubmitting] = useState(false);
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (submitting) return;
-    setSubmitting(true);
-    try {
-      const isLiquids = formData.category === 'liquids';
-      const normalizedFlavors = isLiquids
-        ? (Array.isArray(formData.flavors) ? formData.flavors : [])
-          .map((f) => ({
-            name: String(f.name || '').trim(),
-            stock: Number(f.stock || 0)
-          }))
-          .filter((f) => f.name && f.stock >= 0)
-        : [];
-
-      if (isLiquids && normalizedFlavors.length === 0) {
-        throw new Error('Добавь хотя бы 1 вкус');
-      }
-
-      const totalStock = isLiquids
-        ? normalizedFlavors.reduce((sum, f) => sum + Number(f.stock || 0), 0)
-        : Number(formData.stock);
-
-      await onSubmit({
-        name: String(formData.name || '').trim(),
-        price: Number(formData.price),
-        category: formData.category,
-        stock: totalStock,
-        flavors: normalizedFlavors,
-      });
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
+  console.log('ProductForm рендерится!', { product, onSubmit, onCancel });
+  
   return (
-    <div className="modal-overlay" onClick={onCancel}>
-      <div className="modal" onClick={(e) => e.stopPropagation()} style={{
-        background: '#fff',
-        border: '3px solid #000',
-        borderRadius: '10px',
-        padding: '20px',
-        width: '90%',
-        maxWidth: '500px',
-        maxHeight: '90vh',
-        overflowY: 'auto',
-        position: 'relative',
-        zIndex: 10000
-      }}>
-        <div className="modal-header" style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          borderBottom: '2px solid #000',
-          paddingBottom: '10px',
-          marginBottom: '20px'
-        }}>
-          <h3 style={{ color: '#000', margin: 0 }}>{product ? 'Редактировать товар' : 'Добавить товар'}</h3>
-          <button className="modal-close" onClick={onCancel} style={{
-            background: '#ff0000',
-            color: '#fff',
-            border: 'none',
-            borderRadius: '50%',
-            width: '30px',
-            height: '30px',
-            fontSize: '18px',
-            cursor: 'pointer'
-          }}>×</button>
-        </div>
-        <form onSubmit={handleSubmit} className="product-form" style={{ color: '#000' }}>
-          <div className="form-group" style={{ marginBottom: '15px' }}>
-            <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold', color: '#000' }}>Название товара</label>
-            <input
-              type="text"
-              value={formData.name}
-              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              required
-              style={{
-                width: '100%',
-                padding: '10px',
-                border: '2px solid #000',
-                borderRadius: '5px',
-                fontSize: '16px',
-                background: '#fff',
-                color: '#000'
-              }}
-            />
-          </div>
-          <div className="form-group" style={{ marginBottom: '15px' }}>
-            <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold', color: '#000' }}>Цена (BYN)</label>
-            <input
-              type="number"
-              value={formData.price}
-              onChange={(e) => setFormData({ ...formData, price: e.target.value })}
-              required
-              style={{
-                width: '100%',
-                padding: '10px',
-                border: '2px solid #000',
-                borderRadius: '5px',
-                fontSize: '16px',
-                background: '#fff',
-                color: '#000'
-              }}
-            />
-          </div>
-          <div className="form-group" style={{ marginBottom: '15px' }}>
-            <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold', color: '#000' }}>Категория</label>
-            <select
-              value={formData.category}
-              onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-              style={{
-                width: '100%',
-                padding: '10px',
-                border: '2px solid #000',
-                borderRadius: '5px',
-                fontSize: '16px',
-                background: '#fff',
-                color: '#000'
-              }}
-            >
-              <option value="liquids">Жидкости</option>
-              <option value="consumables">Расходники</option>
-            </select>
-          </div>
-
-          {formData.category === 'liquids' ? (
-            <div className="form-group">
-              <label>Вкусы и количество банок</label>
-              <div style={{ display: 'grid', gap: 8 }}>
-                {formData.flavors.map((flavorRow, idx) => (
-                  <div key={idx} style={{ display: 'grid', gridTemplateColumns: '1fr 140px 40px', gap: 8, alignItems: 'center' }}>
-                    <input
-                      type="text"
-                      value={flavorRow.name}
-                      onChange={(e) => {
-                        const next = [...formData.flavors];
-                        next[idx] = { ...next[idx], name: e.target.value };
-                        setFormData({ ...formData, flavors: next });
-                      }}
-                      placeholder="Вкус (например: Mango Ice)"
-                      required
-                    />
-                    <input
-                      type="number"
-                      value={flavorRow.stock}
-                      onChange={(e) => {
-                        const next = [...formData.flavors];
-                        const raw = e.target.value;
-                        next[idx] = { ...next[idx], stock: raw === '' ? '' : Number(raw) };
-                        setFormData({ ...formData, flavors: next });
-                      }}
-                      min="0"
-                      placeholder="Кол-во"
-                      required
-                    />
-                    <button
-                      type="button"
-                      className="btn-secondary"
-                      onClick={() => {
-                        const next = formData.flavors.filter((_, i) => i !== idx);
-                        setFormData({ ...formData, flavors: next.length ? next : [{ name: '', stock: 0 }] });
-                      }}
-                      aria-label="Удалить вкус"
-                    >
-                      ×
-                    </button>
-                  </div>
-                ))}
-              </div>
-
-              <div style={{ marginTop: 10 }}>
-                <button
-                  type="button"
-                  className="btn-secondary"
-                  onClick={() => setFormData({ ...formData, flavors: [...formData.flavors, { name: '', stock: 0 }] })}
-                >
-                  + Добавить вкус
-                </button>
-              </div>
-            </div>
-          ) : (
-            <div className="form-group">
-              <label>Количество на складе</label>
-              <input
-                type="number"
-                value={formData.stock}
-                onChange={(e) => setFormData({ ...formData, stock: e.target.value })}
-                min="0"
-                required
-              />
-            </div>
-          )}
-          <div className="form-actions">
-            <button type="submit" className="btn-primary">
-              {submitting ? 'Сохраняем…' : (product ? 'Сохранить' : 'Добавить')}
-            </button>
-            <button type="button" onClick={onCancel} className="btn-secondary">
-              Отмена
-            </button>
-          </div>
-        </form>
-      </div>
+    <div style={{
+      position: 'fixed',
+      top: '50%',
+      left: '50%',
+      transform: 'translate(-50%, -50%)',
+      background: '#ff00ff',
+      border: '5px solid #00ff00',
+      padding: '30px',
+      zIndex: 99999,
+      color: '#000',
+      fontSize: '20px'
+    }}>
+      <h2>PRODUCT FORM РАБОТАЕТ!</h2>
+      <p>product: {JSON.stringify(product)}</p>
+      <button 
+        onClick={onCancel}
+        style={{
+          background: '#ff0000',
+          color: '#fff',
+          padding: '10px 20px',
+          border: 'none',
+          cursor: 'pointer'
+        }}
+      >
+        ЗАКРЫТЬ
+      </button>
     </div>
   );
 }
