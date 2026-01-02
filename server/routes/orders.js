@@ -183,13 +183,39 @@ router.post('/', async (req, res) => {
         : (telegram_user?.telegram_first_name || '');
 
       await sendTelegramMessage(
-        `<b>Новый заказ</b> #${order.id}\n` +
-        `${tg ? `Покупатель: ${tg}\n` : ''}` +
-        `${phone ? `Телефон: ${phone}\n` : ''}` +
-        `${delivery_address ? `Адрес: ${delivery_address}\n` : ''}` +
-        `${notes ? `Комментарий: ${notes}\n` : ''}` +
-        `\n<b>Состав:</b>\n${lines.join('\n')}\n\n` +
-        `<b>Итого:</b> ${order.total_amount} BYN`
+        `🔔 <b>НОВЫЙ ЗАКАЗ</b>
+
+📅 <b>Дата:</b> ${new Date().toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+🛍️ <b>Количество товаров:</b> ${items.length} шт.
+💸 <b>Общая сумма:</b> ${order.total_amount.toFixed(2)} BYN
+👤 <b>Клиент:</b> ${tg || 'Не указано'}
+${phone ? `📞 <b>Телефон:</b> ${phone}` : ''}
+${delivery_address ? `🏠 <b>Адрес:</b> ${delivery_address}` : ''}
+${notes ? `📝 <b>Комментарий:</b> ${notes}` : ''}
+
+📦 <b>Состав заказа:</b>
+
+${lines.map((line, idx) => {
+  const match = line.match(/- (.+?) x(\d+) = ([\d.]+) BYN/);
+  if (match) {
+    const [, name, qty, total] = match;
+    const flavorMatch = name.match(/^(.+?) \((.+?)\)$/);
+    if (flavorMatch) {
+      const [_, productName, flavor] = flavorMatch;
+      return `${idx + 1}. ${productName}
+   💰 ${Number(total).toFixed(2)} BYN × ${qty} шт. = ${total} BYN
+   🍃 <b>Вкус:</b> ${flavor}`;
+    } else {
+      return `${idx + 1}. ${name}
+   💰 ${Number(total).toFixed(2)} BYN × ${qty} шт. = ${total} BYN`;
+    }
+  }
+  return `${idx + 1}. ${line}`;
+}).join('\n\n')}
+
+💳 <b>Итого к оплате:</b> ${order.total_amount.toFixed(2)} BYN
+
+⚡ <b>Срочно обработайте заказ!</b>`
       );
 
       res.status(201).json(order);

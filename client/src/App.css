@@ -138,6 +138,26 @@
   margin-bottom: 8px;
 }
 
+.card-flavors {
+  margin-bottom: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.card-flavor {
+  font-size: 11px;
+  color: var(--accent);
+  font-weight: 500;
+  opacity: 0.9;
+}
+
+.card-flavor-more {
+  font-size: 10px;
+  color: var(--muted);
+  font-style: italic;
+}
+
 .card-row {
   display: flex;
   align-items: center;

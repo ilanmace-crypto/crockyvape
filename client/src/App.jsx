@@ -166,21 +166,51 @@ function ProductGrid({ title, products, onOpenProduct, query }) {
           </div>
         )}
         <div className="grid">
-          {filtered.map((it) => (
-            <button
-              key={it.id}
-              type="button"
-              className="card card-clickable"
-              onClick={() => onOpenProduct(it)}
-            >
-              <div className="card-thumb" />
-              <div className="card-name">{it.name}</div>
-              <div className="card-row">
-                <div className="card-price">{it.price} BYN</div>
-                <div className="card-open">Открыть</div>
-              </div>
-            </button>
-          ))}
+          {filtered.map((it) => {
+            const normalizedFlavors = Array.isArray(it.flavors)
+              ? it.flavors
+                  .map((f) => {
+                    if (typeof f === 'string') {
+                      return { name: f, stock: 0 };
+                    }
+                    return {
+                      name: f?.flavor_name || f?.name || '',
+                      stock: Number(f?.stock ?? 0),
+                    };
+                  })
+                  .filter((f) => f.name && f.stock > 0)
+              : [];
+
+            return (
+              <button
+                key={it.id}
+                type="button"
+                className="card card-clickable"
+                onClick={() => onOpenProduct(it)}
+              >
+                <div className="card-thumb" />
+                <div className="card-name">{it.name}</div>
+                {normalizedFlavors.length > 0 && (
+                  <div className="card-flavors">
+                    {normalizedFlavors.slice(0, 3).map((flavor, idx) => (
+                      <div key={idx} className="card-flavor">
+                        {flavor.name} {flavor.stock}шт
+                      </div>
+                    ))}
+                    {normalizedFlavors.length > 3 && (
+                      <div className="card-flavor-more">
+                        +{normalizedFlavors.length - 3} еще
+                      </div>
+                    )}
+                  </div>
+                )}
+                <div className="card-row">
+                  <div className="card-price">{it.price} BYN</div>
+                  <div className="card-open">Открыть</div>
+                </div>
+              </button>
+            );
+          })}
         </div>
       </div>
     </div>
