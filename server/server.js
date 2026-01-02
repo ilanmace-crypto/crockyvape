@@ -21,7 +21,10 @@ app.set('trust proxy', 1);
 app.use(helmet({
   contentSecurityPolicy: false, // Отключаем CSP для разработки
 }));
-app.use(cors());
+app.use(cors({
+  origin: ['https://paradise-shop-api2.vercel.app', 'https://paradise-shop-api2-c3q9bz9bn-ilyas-projects-671fb6eb.vercel.app', 'https://paradise-shop-api2-c3q9bz9bn-ilyas-projects-671fb6eb.vercel.app/admin'],
+  credentials: true
+}));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
