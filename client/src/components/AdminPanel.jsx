@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-// import './AdminPanel.css'; // Временно отключаем CSS
+import './AdminPanel.css';
 
 const AdminPanel = ({ onLogout }) => {
   const [activeTab, setActiveTab] = useState('products');
@@ -11,31 +11,6 @@ const AdminPanel = ({ onLogout }) => {
   const [error, setError] = useState('');
   const [showAddProduct, setShowAddProduct] = useState(false);
   const [editingProduct, setEditingProduct] = useState(null);
-
-  // Базовые стили
-  const containerStyle = {
-    padding: '20px',
-    background: '#f5f5f5',
-    minHeight: '100vh'
-  };
-  
-  const headerStyle = {
-    background: '#fff',
-    padding: '20px',
-    borderRadius: '10px',
-    marginBottom: '20px',
-    boxShadow: '0 2px 10px rgba(0,0,0,0.1)'
-  };
-  
-  const buttonStyle = {
-    background: '#007bff',
-    color: '#fff',
-    border: 'none',
-    padding: '10px 20px',
-    borderRadius: '5px',
-    cursor: 'pointer',
-    marginRight: '10px'
-  };
 
   const normalizeProduct = (p) => {
     const category = Number(p?.category_id) === 1
@@ -247,14 +222,11 @@ const AdminPanel = ({ onLogout }) => {
   };
 
   const renderProducts = () => (
-    <div style={containerStyle}>
-      <div style={headerStyle}>
+    <div className="admin-section">
+      <div className="section-header">
         <h3>Управление товарами</h3>
-        <button style={buttonStyle} onClick={() => {
-          console.log('Клик по кнопке Добавить товар');
-          alert('Клик по кнопке Добавить товар сработал! showAddProduct = ' + showAddProduct);
+        <button className="admin-button primary" onClick={() => {
           setShowAddProduct(true);
-          console.log('setShowAddProduct(true) вызван');
         }}>
           + Добавить товар
         </button>
@@ -289,47 +261,14 @@ const AdminPanel = ({ onLogout }) => {
       )}
 
       {(showAddProduct || editingProduct) && (
-        <>
-          {/* Временная отладочная модалка */}
-          <div style={{
-            position: 'fixed',
-            top: 0, left: 0, right: 0, bottom: 0,
-            background: 'rgba(0, 255, 0, 0.9)',
-            zIndex: 999999,
-            display: 'flex',
-            justifyContent: 'center',
-            alignItems: 'center',
-            fontSize: '24px',
-            color: '#000',
-            fontWeight: 'bold'
-          }}>
-            <div>
-              МОДАЛКА РАБОТАЕТ! showAddProduct = {showAddProduct ? 'true' : 'false'}
-              <br /><br />
-              <button onClick={() => {
-                setShowAddProduct(false);
-                setEditingProduct(null);
-              }} style={{
-                padding: '10px 20px',
-                fontSize: '18px',
-                background: '#fff',
-                border: '2px solid #000',
-                cursor: 'pointer'
-              }}>
-                Закрыть
-              </button>
-            </div>
-          </div>
-          
-          <ProductForm
-            product={editingProduct}
-            onSubmit={editingProduct ? handleEditProduct : handleAddProduct}
-            onCancel={() => {
-              setShowAddProduct(false);
-              setEditingProduct(null);
-            }}
-          />
-        </>
+        <ProductForm
+          product={editingProduct}
+          onSubmit={editingProduct ? handleEditProduct : handleAddProduct}
+          onCancel={() => {
+            setShowAddProduct(false);
+            setEditingProduct(null);
+          }}
+        />
       )}
     </div>
   );
@@ -503,65 +442,91 @@ const AdminPanel = ({ onLogout }) => {
 };
 
 function ProductForm({ product, onSubmit, onCancel }) {
-  console.log('ProductForm рендерится!', { product, onSubmit, onCancel });
-  
-  const handleSubmit = (e) => {
+  const [formData, setFormData] = useState({
+    name: product?.name || '',
+    price: product?.price || '',
+    category: product?.category || (Number(product?.category_id) === 2 ? 'consumables' : 'liquids'),
+    stock: product?.stock || '',
+  });
+
+  const [submitting, setSubmitting] = useState(false);
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    const formData = new FormData(e.target);
-    const data = {
-      name: formData.get('name'),
-      price: Number(formData.get('price')),
-      category: formData.get('category'),
-      stock: Number(formData.get('stock')),
-    };
-    console.log('Отправка данных:', data);
-    onSubmit(data);
+    if (submitting) return;
+    setSubmitting(true);
+    try {
+      const data = {
+        name: String(formData.name || '').trim(),
+        price: Number(formData.price),
+        category: formData.category,
+        stock: Number(formData.stock),
+        flavors: [], // Временно без вкусов
+      };
+      await onSubmit(data);
+    } finally {
+      setSubmitting(false);
+    }
   };
-  
+
   return (
-    <div style={{
-      position: 'fixed',
-      top: '50%',
-      left: '50%',
-      transform: 'translate(-50%, -50%)',
-      background: '#fff',
-      border: '5px solid #000',
-      padding: '30px',
-      zIndex: 99999,
-      color: '#000',
-      fontSize: '16px',
-      width: '400px'
-    }}>
-      <h2 style={{ marginTop: 0 }}>Добавить товар</h2>
-      <form onSubmit={handleSubmit}>
-        <div style={{ marginBottom: '15px' }}>
-          <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>Название товара</label>
-          <input name="name" type="text" required style={{ width: '100%', padding: '8px', border: '2px solid #000' }} />
+    <div className="modal-overlay" onClick={onCancel}>
+      <div className="modal" onClick={(e) => e.stopPropagation()}>
+        <div className="modal-header">
+          <h3>{product ? 'Редактировать товар' : 'Добавить товар'}</h3>
+          <button className="modal-close" onClick={onCancel}>×</button>
         </div>
-        <div style={{ marginBottom: '15px' }}>
-          <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>Цена (BYN)</label>
-          <input name="price" type="number" required style={{ width: '100%', padding: '8px', border: '2px solid #000' }} />
-        </div>
-        <div style={{ marginBottom: '15px' }}>
-          <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>Категория</label>
-          <select name="category" style={{ width: '100%', padding: '8px', border: '2px solid #000' }}>
-            <option value="liquids">Жидкости</option>
-            <option value="consumables">Расходники</option>
-          </select>
-        </div>
-        <div style={{ marginBottom: '20px' }}>
-          <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>Количество на складе</label>
-          <input name="stock" type="number" required style={{ width: '100%', padding: '8px', border: '2px solid #000' }} />
-        </div>
-        <div style={{ display: 'flex', gap: '10px' }}>
-          <button type="submit" style={{ background: '#007bff', color: '#fff', padding: '10px 20px', border: 'none', cursor: 'pointer' }}>
-            Добавить
-          </button>
-          <button type="button" onClick={onCancel} style={{ background: '#dc3545', color: '#fff', padding: '10px 20px', border: 'none', cursor: 'pointer' }}>
-            Отмена
-          </button>
-        </div>
-      </form>
+        <form onSubmit={handleSubmit} className="product-form">
+          <div className="form-group">
+            <label>Название товара</label>
+            <input
+              type="text"
+              value={formData.name}
+              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+              required
+            />
+          </div>
+          <div className="form-group">
+            <label>Цена (BYN)</label>
+            <input
+              type="number"
+              value={formData.price}
+              onChange={(e) => setFormData({ ...formData, price: e.target.value })}
+              min="0"
+              step="0.01"
+              required
+            />
+          </div>
+          <div className="form-group">
+            <label>Категория</label>
+            <select
+              value={formData.category}
+              onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+            >
+              <option value="liquids">Жидкости</option>
+              <option value="consumables">Расходники</option>
+            </select>
+          </div>
+          <div className="form-group">
+            <label>Количество на складе</label>
+            <input
+              type="number"
+              value={formData.stock}
+              onChange={(e) => setFormData({ ...formData, stock: e.target.value })}
+              min="0"
+              required
+            />
+          </div>
+          <div className="form-actions">
+            <button type="submit" className="btn-primary" disabled={submitting}>
+              {submitting ? 'Сохраняем...' : (product ? 'Сохранить' : 'Добавить')}
+            </button>
+            <button type="button" onClick={onCancel} className="btn-secondary">
+              Отмена
+            </button>
+          </div>
+        </form>
+      </div>
     </div>
   );
 }
