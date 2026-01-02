@@ -6,7 +6,7 @@
       "use": "@vercel/node"
     },
     {
-      "src": "client/package.json",
+      "src": "client/package.json", 
       "use": "@vercel/static-build",
       "config": {"distDir": "dist"}
     }
@@ -17,7 +17,7 @@
       "destination": "/server/server.js"
     },
     {
-      "source": "/admin/(.*)",
+      "source": "/admin/(.*)", 
       "destination": "/server/server.js"
     },
     {
