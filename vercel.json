@@ -27,20 +27,8 @@
       "dest": "/server/vercel.js"
     },
     {
-      "src": "/client/assets/(.*)",
-      "dest": "/client/dist/assets/$1"
-    },
-    {
-      "src": "/client/vite.svg",
-      "dest": "/client/dist/vite.svg"
-    },
-    {
-      "src": "/client/(.*)",
-      "dest": "/client/dist/index.html"
-    },
-    {
       "src": "/(.*)",
-      "dest": "/index.html"
+      "dest": "/client/dist/$1"
     }
   ]
 }
