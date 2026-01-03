@@ -11,7 +11,7 @@ const app = express();
 app.use((req, res, next) => {
   res.setHeader(
     'Content-Security-Policy',
-    "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://api.telegram.org; worker-src 'self' blob:;"
+    "default-src 'self' 'unsafe-inline' 'unsafe-eval'; script-src 'self' 'unsafe-inline' 'unsafe-eval' blob:; style-src 'self' 'unsafe-inline' blob:; img-src 'self' data: blob: https:; font-src 'self' data: https:; connect-src 'self' https: wss: blob:; worker-src 'self' blob:; media-src 'self' blob:; manifest-src 'self';"
   );
   next();
 });
@@ -27,8 +27,22 @@ app.use(express.json());
 app.use(express.static('public'));
 app.use(express.static('.'));
 
+// Favicon handler
+app.get('/favicon.ico', (req, res) => {
+  res.status(204).end(); // Return no content for favicon
+});
+
 // Root route handler - serve index.html
 app.get('/', (req, res) => {
+  res.sendFile('index.html', { root: '.' });
+});
+
+// Catch-all handler for React Router
+app.get('*', (req, res) => {
+  // Don't intercept API routes
+  if (req.path.startsWith('/api') || req.path.startsWith('/admin') || req.path === '/health') {
+    return res.status(404).json({ error: 'Route not found' });
+  }
   res.sendFile('index.html', { root: '.' });
 });
 
