@@ -410,17 +410,63 @@ function CartDrawer({ open, items, onClose, onDec, onInc, onRemove, onClear }) {
 }
 
 function ReviewsPlaceholder() {
+  const [reviewForm, setReviewForm] = useState({
+    username: '',
+    text: ''
+  })
+  const [submitting, setSubmitting] = useState(false)
+
+  const handleSubmit = async (e) => {
+    e.preventDefault()
+    if (submitting) return
+    
+    if (!reviewForm.username.trim() || !reviewForm.text.trim()) {
+      alert('Заполни все поля!')
+      return
+    }
+
+    setSubmitting(true)
+    try {
+      // Здесь можно добавить API для отправки отзыва
+      alert('Спасибо за отзыв! 🎉')
+      setReviewForm({ username: '', text: '' })
+    } catch (error) {
+      alert('Ошибка отправки отзыва')
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
   return (
     <div className="screen">
       <div className="container">
         <div className="screen-title">Отзывы</div>
         <div className="panel">
           <div className="panel-title">Оставь отзыв</div>
-          <input className="input" placeholder="Твой ник в Telegram" />
-          <textarea className="textarea" placeholder="Напиши отзыв…" rows={4} />
-          <button type="button" className="primary-btn">
-            Отправить
-          </button>
+          <form onSubmit={handleSubmit}>
+            <input 
+              className="input" 
+              placeholder="Твой ник в Telegram" 
+              value={reviewForm.username}
+              onChange={(e) => setReviewForm(prev => ({ ...prev, username: e.target.value }))}
+              disabled={submitting}
+            />
+            <textarea 
+              className="textarea" 
+              placeholder="Напиши отзыв…" 
+              rows={4}
+              value={reviewForm.text}
+              onChange={(e) => setReviewForm(prev => ({ ...prev, text: e.target.value }))}
+              disabled={submitting}
+            />
+            <button 
+              type="submit" 
+              className="primary-btn"
+              disabled={submitting}
+            >
+              {submitting ? 'Отправляем...' : 'Отправить'}
+            </button>
+          </form>
         </div>
         <div className="panel" style={{ marginTop: 12 }}>
           <div className="panel-title">Последние отзывы</div>
