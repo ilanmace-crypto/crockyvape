@@ -293,3 +293,112 @@ app.get('/admin/users', async (req, res) => {
   }
 });
 
+
+// PUT /admin/products/:id - update product
+app.put('/admin/products/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { name, category_id, category, price, description, stock, flavors, image_url } = req.body;
+
+    if (!name || !price) {
+      return res.status(400).json({ error: 'Name and price are required' });
+    }
+
+    // Определяем category_id
+    let resolvedCategoryId = category_id;
+    if (!resolvedCategoryId && category) {
+      if (category === 'liquids') resolvedCategoryId = 1;
+      else if (category === 'consumables') resolvedCategoryId = 2;
+    }
+
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
+      
+      const productResult = await client.query(`
+        UPDATE products 
+        SET name = $1, category_id = $2, price = $3, description = $4, stock = $5, image_url = $6, updated_at = NOW()
+        WHERE id = $7
+        RETURNING *
+      `, [name, resolvedCategoryId, price, description || null, stock || 0, image_url || null, id]);
+      
+      if (productResult.rows.length === 0) {
+        await client.query('ROLLBACK');
+        return res.status(404).json({ error: 'Product not found' });
+      }
+      
+      const product = productResult.rows[0];
+      
+      // Удаляем старые вкусы и добавляем новые
+      await client.query('DELETE FROM product_flavors WHERE product_id = $1', [id]);
+      
+      if (flavors && Array.isArray(flavors) && flavors.length > 0) {
+        for (const flavor of flavors) {
+          if (flavor.name && flavor.stock > 0) {
+            await client.query(`
+              INSERT INTO product_flavors (product_id, flavor_name, stock)
+              VALUES ($1, $2, $3)
+            `, [id, flavor.name, flavor.stock]);
+          }
+        }
+      }
+      
+      await client.query('COMMIT');
+      
+      res.json({
+        success: true,
+        product: {
+          ...product,
+          flavors: flavors || []
+        }
+      });
+    } catch (error) {
+      await client.query('ROLLBACK');
+      throw error;
+    } finally {
+      client.release();
+    }
+  } catch (error) {
+    console.error('Update product error:', error);
+    res.status(500).json({ error: 'Failed to update product' });
+  }
+});
+
+// DELETE /admin/products/:id - delete product
+app.delete('/admin/products/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
+      
+      // Удаляем вкусы
+      await client.query('DELETE FROM product_flavors WHERE product_id = $1', [id]);
+      
+      // Удаляем товар
+      const result = await client.query('DELETE FROM products WHERE id = $1 RETURNING *', [id]);
+      
+      if (result.rows.length === 0) {
+        await client.query('ROLLBACK');
+        return res.status(404).json({ error: 'Product not found' });
+      }
+      
+      await client.query('COMMIT');
+      
+      res.json({
+        success: true,
+        message: 'Product deleted successfully'
+      });
+    } catch (error) {
+      await client.query('ROLLBACK');
+      throw error;
+    } finally {
+      client.release();
+    }
+  } catch (error) {
+    console.error('Delete product error:', error);
+    res.status(500).json({ error: 'Failed to delete product' });
+  }
+});
+
