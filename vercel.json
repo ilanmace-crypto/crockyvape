@@ -27,8 +27,12 @@
       "dest": "/server/vercel.js"
     },
     {
-      "src": "/(.*)",
+      "src": "/client/(.*)",
       "dest": "/client/dist/$1"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/index.html"
     }
   ]
 }
