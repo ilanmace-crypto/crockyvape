@@ -487,3 +487,38 @@ app.get('/api/db-check', async (req, res) => {
   }
 });
 
+
+// GET /api/products-debug - debug products API
+app.get('/api/products-debug', async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT p.*, c.name as category_name
+      FROM products p
+      LEFT JOIN categories c ON p.category_id = c.id
+      ORDER BY p.created_at DESC
+    `);
+    
+    // Получаем вкусы для каждого товара
+    for (let product of result.rows) {
+      const flavors = await pool.query(
+        'SELECT * FROM product_flavors WHERE product_id = $1 ORDER BY flavor_name',
+        [product.id]
+      );
+      product.flavors = flavors.rows;
+    }
+    
+    res.json({
+      total_products: result.rows.length,
+      products: result.rows,
+      frontend_filter: {
+        liquids_count: result.rows.filter(p => Number(p.category_id) === 1 && Number(p.stock) > 0).length,
+        consumables_count: result.rows.filter(p => Number(p.category_id) === 2 && Number(p.stock) > 0).length,
+        with_stock_count: result.rows.filter(p => Number(p.stock) > 0).length
+      }
+    });
+  } catch (error) {
+    console.error('Debug products error:', error);
+    res.status(500).json({ error: 'Failed to fetch debug products' });
+  }
+});
+
