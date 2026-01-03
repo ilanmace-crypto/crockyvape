@@ -24,7 +24,11 @@ const securityLog = (level, message, meta = {}) => {
   const logFile = path.join(logDir, `security-${new Date().toISOString().split('T')[0]}.log`);
   const logLine = JSON.stringify(logEntry) + '\n';
 
-  fs.appendFileSync(logFile, logLine);
+  try {
+    fs.appendFileSync(logFile, logLine);
+  } catch (logError) {
+    console.warn('Failed to write security log:', logError.message);
+  }
 
   // Критические события также в консоль
   if (level === 'CRITICAL' || level === 'HIGH') {
@@ -32,81 +36,47 @@ const securityLog = (level, message, meta = {}) => {
   }
 };
 
-// Мониторинг подозрительной активности
+// Упрощенный мониторинг подозрительной активности
 const detectSuspiciousActivity = (req, res, next) => {
   const ip = req.ip || req.connection.remoteAddress;
   const userAgent = req.headers['user-agent'] || '';
   const path = req.path;
   const method = req.method;
 
-  // Подозрительные User-Agent
-  const suspiciousAgents = [
-    /bot/i,
-    /crawler/i,
-    /scanner/i,
-    /sqlmap/i,
-    /nikto/i,
-    /nmap/i
-  ];
+  // Только критические проверки для Vercel
+  try {
+    // Попытки SQL инъекций только в параметрах
+    const sqlInjectionPatterns = [
+      /(\%27)|(\')|(\-\-)|(\%23)|(#)/i,
+      /((\%3D)|(=))[^\n]*((\%27)|(\')|(\-\-)|(\%3B)|(;))/i,
+      /\w*((\%27)|(\'))((\%6F)|o|(\%4F))((\%72)|r|(\%52))/i
+    ];
 
-  if (suspiciousAgents.some(agent => agent.test(userAgent))) {
-    securityLog('HIGH', 'Suspicious user agent detected', {
-      ip,
-      userAgent,
-      path,
-      method
-    });
-  }
+    const checkSQLInjection = (obj) => {
+      if (typeof obj === 'string') {
+        return sqlInjectionPatterns.some(pattern => pattern.test(obj));
+      }
+      if (typeof obj === 'object' && obj !== null) {
+        return Object.values(obj).some(checkSQLInjection);
+      }
+      return false;
+    };
 
-  // Подозрительные пути
-  const suspiciousPaths = [
-    '/admin',
-    '/api/admin',
-    '/config',
-    '/env',
-    '/.env',
-    '/wp-admin',
-    '/phpmyadmin'
-  ];
-
-  if (suspiciousPaths.some(suspiciousPath => path.includes(suspiciousPath))) {
-    securityLog('MEDIUM', 'Suspicious path access attempt', {
-      ip,
-      path,
-      method,
-      userAgent
-    });
-  }
-
-  // Попытки SQL инъекций в параметрах
-  const sqlInjectionPatterns = [
-    /(\%27)|(\')|(\-\-)|(\%23)|(#)/i,
-    /((\%3D)|(=))[^\n]*((\%27)|(\')|(\-\-)|(\%3B)|(;))/i,
-    /\w*((\%27)|(\'))((\%6F)|o|(\%4F))((\%72)|r|(\%52))/i
-  ];
-
-  const checkSQLInjection = (obj) => {
-    if (typeof obj === 'string') {
-      return sqlInjectionPatterns.some(pattern => pattern.test(obj));
+    // Проверяем только query параметры (не body чтобы не сломать JSON)
+    if (checkSQLInjection(req.query)) {
+      securityLog('CRITICAL', 'SQL injection attempt detected', {
+        ip,
+        path,
+        method,
+        userAgent,
+        query: req.query
+      });
+      
+      // Не блокируем, а просто логируем для Vercel
+      console.warn('SQL injection attempt detected from IP:', ip);
     }
-    if (typeof obj === 'object' && obj !== null) {
-      return Object.values(obj).some(checkSQLInjection);
-    }
-    return false;
-  };
-
-  if (checkSQLInjection(req.query) || checkSQLInjection(req.body)) {
-    securityLog('CRITICAL', 'SQL injection attempt detected', {
-      ip,
-      path,
-      method,
-      userAgent,
-      query: req.query,
-      body: req.body
-    });
-    
-    // Блокируем IP при попытке SQL инъекции
-    return res.status(403).json({ error: 'Access denied' });
+  } catch (error) {
+    console.warn('Security middleware error:', error.message);
   }
 
   next();
