@@ -489,11 +489,30 @@ function MainApp() {
   const [checkoutOpen, setCheckoutOpen] = useState(false)
   const [checkoutSubmitting, setCheckoutSubmitting] = useState(false)
   const [products, setProducts] = useState([])
+  const [isOnline, setIsOnline] = useState(navigator.onLine)
+
+  // Отслеживание состояния сети
+  useEffect(() => {
+    const handleOnline = () => setIsOnline(true)
+    const handleOffline = () => {
+      setIsOnline(false)
+      alert('Потеряно подключение к интернету. Некоторые функции могут не работать.')
+    }
+
+    window.addEventListener('online', handleOnline)
+    window.addEventListener('offline', handleOffline)
+
+    return () => {
+      window.removeEventListener('online', handleOnline)
+      window.removeEventListener('offline', handleOffline)
+    }
+  }, [])
 
   // Загрузка товаров с API
   useEffect(() => {
-    const loadProducts = async () => {
+    const loadProducts = async (retryCount = 0) => {
       try {
+        setLoading(true)
         const response = await fetch('/api/products');
         if (response.ok) {
           const productsData = await response.json();
@@ -518,14 +537,18 @@ function MainApp() {
             : []
 
           setProducts(normalized.filter(p => p.stock > 0));
+        } else {
+          throw new Error('Failed to load products');
         }
       } catch (error) {
         console.error('Error loading products:', error);
-        // Если API не работает, добавим тестовые товары
-        setProducts([
-          { id: 1, name: 'Тестовый товар 1', price: 25, category: 'liquids' },
-          { id: 2, name: 'Тестовый товар 2', price: 30, category: 'consumables' },
-        ]);
+        if (retryCount < 2) {
+          // Retry after 2 seconds
+          setTimeout(() => loadProducts(retryCount + 1), 2000);
+        } else {
+          // Show error after 3 failed attempts
+          setProducts([]);
+        }
       } finally {
         setLoading(false);
       }
@@ -622,6 +645,12 @@ function MainApp() {
       alert('Корзина пуста!')
       return
     }
+
+    // Проверка интернет соединения
+    if (!navigator.onLine) {
+      alert('Нет подключения к интернету. Проверь соединение и попробуй снова.')
+      return
+    }
     
     setCheckoutSubmitting(true)
     try {
@@ -676,6 +705,11 @@ function MainApp() {
 
   return (
     <div className="app">
+      {!isOnline && (
+        <div className="offline-indicator">
+          📵 Нет подключения к интернету
+        </div>
+      )}
       <Preloader visible={loading} />
       <HeaderWithCart cartCount={cartCount} onOpenCart={() => setCartOpen(true)} />
       <main className="main">

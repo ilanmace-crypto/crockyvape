@@ -46,18 +46,38 @@ class ApiService {
   // Создание заказа
   static async createOrder(orderData) {
     try {
+      // Проверка интернет соединения
+      if (!navigator.onLine) {
+        throw new Error('Нет подключения к интернету');
+      }
+
       const response = await fetch(`${API_BASE}/orders`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(orderData),
+        timeout: 10000, // 10 секунд таймаут
       });
-      if (!response.ok) throw new Error('Failed to create order');
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || `HTTP ${response.status}: ${response.statusText}`);
+      }
+      
       return await response.json();
     } catch (error) {
       console.error('Error creating order:', error);
-      return null;
+      
+      if (error.name === 'TypeError' && error.message.includes('fetch')) {
+        throw new Error('Ошибка сети. Проверь подключение к интернету.');
+      }
+      
+      if (error.name === 'AbortError') {
+        throw new Error('Превышено время ожидания. Попробуй еще раз.');
+      }
+      
+      throw error;
     }
   }
 
