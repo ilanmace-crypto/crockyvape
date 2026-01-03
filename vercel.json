@@ -18,6 +18,10 @@
     {
       "src": "/health",
       "dest": "/server/vercel.js"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/$1"
     }
   ]
 }
