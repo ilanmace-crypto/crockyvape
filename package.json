@@ -2,21 +2,10 @@
   "name": "paradise-shop",
   "version": "1.0.0",
   "scripts": {
-    "start": "cd server && node server.js",
-    "build": "cd client && npm install && npm run build",
-    "dev": "concurrently \"cd server && npm run dev\" \"cd client && npm start\""
+    "start": "node server/vercel.js"
   },
   "dependencies": {
     "express": "^4.18.2",
-    "bcrypt": "^5.1.0",
-    "jsonwebtoken": "^9.0.2",
-    "cors": "^2.8.5",
-    "dotenv": "^16.3.1",
-    "pg": "^8.11.3",
-    "helmet": "^7.1.0",
-    "express-rate-limit": "^7.1.5"
-  },
-  "devDependencies": {
-    "concurrently": "^8.2.0"
+    "cors": "^2.8.5"
   }
 }
