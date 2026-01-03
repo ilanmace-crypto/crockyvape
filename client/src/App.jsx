@@ -536,7 +536,7 @@ function MainApp() {
             })
             : []
 
-          setProducts(normalized.filter(p => p.stock > 0));
+          setProducts(normalized.filter(p => Number(p.stock) > 0));
         } else {
           throw new Error('Failed to load products');
         }
@@ -717,7 +717,7 @@ function MainApp() {
           {activeTab === 'liquids' && (
             <ProductGrid
               title="Жидкости"
-              products={products.filter(p => p.category === 'liquids' && p.stock > 0)}
+              products={products.filter(p => p.category === 'liquids' && Number(p.stock) > 0)}
               onOpenProduct={(p) => setActiveProduct(p)}
               query={searchQuery}
             />
@@ -725,7 +725,7 @@ function MainApp() {
           {activeTab === 'consumables' && (
             <ProductGrid
               title="Расходники"
-              products={products.filter(p => p.category === 'consumables' && p.stock > 0)}
+              products={products.filter(p => p.category === 'consumables' && Number(p.stock) > 0)}
               onOpenProduct={(p) => setActiveProduct(p)}
               query={searchQuery}
             />

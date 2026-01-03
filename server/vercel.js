@@ -139,31 +139,42 @@ app.get('/api/products', async (req, res) => {
 // Orders с Neon БД
 app.post('/api/orders', async (req, res) => {
   try {
+    console.log('Order request received:', JSON.stringify(req.body, null, 2));
+    
     const { items, telegram_user } = req.body;
     
     if (!items || !Array.isArray(items) || items.length === 0) {
+      console.log('Order validation failed: missing items');
       return res.status(400).json({ error: 'Missing items' });
     }
+
+    console.log('Items count:', items.length);
+    console.log('Telegram user:', telegram_user);
 
     // Создаем заказ в Neon
     const client = await pool.connect();
     try {
       await client.query('BEGIN');
       
+      const totalAmount = items.reduce((sum, item) => sum + (Number(item.price) * Number(item.quantity)), 0);
+      console.log('Total amount calculated:', totalAmount);
+      
       const orderResult = await client.query(`
         INSERT INTO orders (user_id, total_amount, telegram_id, telegram_username)
         VALUES (NULL, $1, $2, $3)
         RETURNING *
       `, [
-        items.reduce((sum, item) => sum + (item.price * item.quantity), 0),
+        totalAmount,
         telegram_user?.telegram_id || null,
         telegram_user?.telegram_username || null
       ]);
       
       const order = orderResult.rows[0];
+      console.log('Order created:', order.id);
       
       // Добавляем товары заказа
       for (const item of items) {
+        console.log('Adding order item:', item);
         await client.query(`
           INSERT INTO order_items (order_id, product_id, flavor_name, quantity, price)
           VALUES ($1, $2, $3, $4, $5)
@@ -171,21 +182,24 @@ app.post('/api/orders', async (req, res) => {
       }
       
       await client.query('COMMIT');
+      console.log('Order transaction committed');
       
       res.json({
         id: order.id,
         status: 'created',
-        message: 'Order created successfully in Neon'
+        message: 'Order created successfully in Neon',
+        total_amount: totalAmount
       });
     } catch (error) {
       await client.query('ROLLBACK');
+      console.error('Order transaction error:', error);
       throw error;
     } finally {
       client.release();
     }
   } catch (error) {
-    console.error('Order error:', error);
-    res.status(500).json({ error: 'Failed to create order' });
+    console.error('Order creation error:', error);
+    res.status(500).json({ error: 'Failed to create order', details: error.message });
   }
 });
 
