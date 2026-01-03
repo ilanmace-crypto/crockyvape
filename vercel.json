@@ -2,13 +2,6 @@
   "version": 2,
   "builds": [
     {
-      "src": "package.json",
-      "use": "@vercel/static-build",
-      "config": {
-        "distDir": "."
-      }
-    },
-    {
       "src": "server/vercel.js",
       "use": "@vercel/node"
     }
@@ -25,10 +18,6 @@
     {
       "src": "/health",
       "dest": "/server/vercel.js"
-    },
-    {
-      "src": "/(.*)",
-      "dest": "/$1"
     }
   ]
 }
