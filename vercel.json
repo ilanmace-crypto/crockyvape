@@ -26,11 +26,11 @@
     },
     {
       "src": "/assets/(.*)",
-      "dest": "/client/assets/$1"
+      "dest": "/client/dist/assets/$1"
     },
     {
       "src": "/(.*)",
-      "dest": "/client/index.html"
+      "dest": "/client/dist/index.html"
     }
   ]
 }
