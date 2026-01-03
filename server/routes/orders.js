@@ -53,8 +53,53 @@ router.post('/', async (req, res) => {
   try {
     const { user_id, total_amount, delivery_address, phone, notes, items, telegram_user } = req.body;
 
+    // Валидация входных данных
     if (!items || !Array.isArray(items) || items.length === 0) {
       return res.status(400).json({ error: 'Missing required fields' });
+    }
+
+    // Ограничение количества товаров в заказе
+    if (items.length > 50) {
+      return res.status(400).json({ error: 'Too many items in order' });
+    }
+
+    // Валидация каждого товара
+    for (const item of items) {
+      if (!item.product_id || typeof item.product_id !== 'string') {
+        return res.status(400).json({ error: 'Invalid product ID' });
+      }
+      
+      const quantity = Number(item.quantity);
+      if (!Number.isInteger(quantity) || quantity < 1 || quantity > 100) {
+        return res.status(400).json({ error: 'Invalid quantity' });
+      }
+      
+      const price = Number(item.price);
+      if (!Number.isFinite(price) || price < 0 || price > 10000) {
+        return res.status(400).json({ error: 'Invalid price' });
+      }
+
+      // Валидация имени вкуса
+      if (item.flavor_name && (typeof item.flavor_name !== 'string' || item.flavor_name.length > 100)) {
+        return res.status(400).json({ error: 'Invalid flavor name' });
+      }
+    }
+
+    // Валидация полей заказа
+    if (total_amount && (!Number.isFinite(Number(total_amount)) || Number(total_amount) < 0 || Number(total_amount) > 100000)) {
+      return res.status(400).json({ error: 'Invalid total amount' });
+    }
+
+    if (phone && (typeof phone !== 'string' || phone.length > 20)) {
+      return res.status(400).json({ error: 'Invalid phone number' });
+    }
+
+    if (delivery_address && (typeof delivery_address !== 'string' || delivery_address.length > 500)) {
+      return res.status(400).json({ error: 'Invalid delivery address' });
+    }
+
+    if (notes && (typeof notes !== 'string' || notes.length > 1000)) {
+      return res.status(400).json({ error: 'Invalid notes' });
     }
     
     const client = await pool.connect();

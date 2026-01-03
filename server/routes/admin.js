@@ -224,6 +224,48 @@ router.post('/products', authenticateToken, async (req, res) => {
   try {
     const { name, category_id, category, price, description, stock, flavors, flavor, image_url } = req.body;
 
+    // Валидация входных данных
+    if (!name || typeof name !== 'string' || name.trim().length === 0) {
+      return res.status(400).json({ error: 'Product name is required' });
+    }
+
+    if (name.length > 200) {
+      return res.status(400).json({ error: 'Product name too long' });
+    }
+
+    if (!price || !Number.isFinite(Number(price)) || Number(price) < 0 || Number(price) > 100000) {
+      return res.status(400).json({ error: 'Invalid price' });
+    }
+
+    if (stock !== undefined && (!Number.isInteger(Number(stock)) || Number(stock) < 0 || Number(stock) > 10000)) {
+      return res.status(400).json({ error: 'Invalid stock' });
+    }
+
+    if (description && description.length > 2000) {
+      return res.status(400).json({ error: 'Description too long' });
+    }
+
+    if (image_url && (typeof image_url !== 'string' || image_url.length > 1000)) {
+      return res.status(400).json({ error: 'Invalid image URL' });
+    }
+
+    // Валидация вкусов
+    if (flavors && Array.isArray(flavors)) {
+      if (flavors.length > 50) {
+        return res.status(400).json({ error: 'Too many flavors' });
+      }
+      
+      for (const f of flavors) {
+        if (!f.name || typeof f.name !== 'string' || f.name.length > 100) {
+          return res.status(400).json({ error: 'Invalid flavor name' });
+        }
+        
+        if (!Number.isInteger(Number(f.stock)) || Number(f.stock) < 0 || Number(f.stock) > 1000) {
+          return res.status(400).json({ error: 'Invalid flavor stock' });
+        }
+      }
+    }
+
     const resolvedCategoryId = await resolveCategoryId({ category_id, category });
     if (!resolvedCategoryId) {
       return res.status(400).json({ error: 'category_id or valid category is required' });

@@ -2,6 +2,8 @@ const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
+const sanitizeInput = require('./middleware/sanitize');
+const { detectSuspiciousActivity } = require('./middleware/security');
 require('dotenv').config();
 
 // Подключаем роуты
@@ -19,7 +21,19 @@ app.set('trust proxy', 1);
 
 // Middleware
 app.use(helmet({
-  contentSecurityPolicy: false, // Отключаем CSP для разработки
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      styleSrc: ["'self'", "'unsafe-inline'"],
+      scriptSrc: ["'self'"],
+      imgSrc: ["'self'", "data:", "https:"],
+    },
+  },
+  hsts: {
+    maxAge: 31536000,
+    includeSubDomains: true,
+    preload: true
+  }
 }));
 app.use(cors({
   origin: (origin, callback) => {
@@ -34,8 +48,10 @@ app.use(cors({
   },
   credentials: true
 }));
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+app.use(sanitizeInput); // Защита от XSS
+app.use(detectSuspiciousActivity); // Мониторинг безопасности
 
 // Rate limiting с правильной конфигурацией для proxy
 const limiter = rateLimit({
@@ -57,6 +73,26 @@ const orderLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
 });
+
+// Защита от brute force атак на админку
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 10, // максимум 10 попыток входа за 15 минут
+  message: { error: 'Too many login attempts, please try again later' },
+  standardHeaders: true,
+  legacyHeaders: false,
+  skipSuccessfulRequests: true,
+});
+
+// Защита от DDoS на API
+const ddosLimiter = rateLimit({
+  windowMs: 1 * 60 * 1000, // 1 minute
+  max: 1000, // максимум 1000 запросов в минуту
+  message: { error: 'Too many requests, please slow down' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+app.use('/api/', ddosLimiter);
 app.use('/api/', limiter);
 
 // Routes
@@ -69,7 +105,7 @@ app.use('/api/stats', statsRouter);
 app.get(['/admin', '/admin/'], (req, res) => {
   res.redirect('/#/admin');
 });
-app.use('/admin', adminRouter);
+app.use('/admin', authLimiter, adminRouter);
 
 // Debug route
 app.get('/api/debug', (req, res) => {
