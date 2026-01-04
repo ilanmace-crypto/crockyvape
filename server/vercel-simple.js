@@ -22,10 +22,16 @@ app.use(express.json());
 // Serve static files from root
 app.use(express.static('public'));
 app.use(express.static('.'));
+app.use('/assets', express.static('assets'));
 
 // Favicon handler
 app.get('/favicon.ico', (req, res) => {
   res.status(204).end();
+});
+
+// Vite.svg handler
+app.get('/vite.svg', (req, res) => {
+  res.sendFile('vite.svg', { root: '.' });
 });
 
 // Root route handler - serve index.html
