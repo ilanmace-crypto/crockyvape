@@ -20,18 +20,6 @@
       "dest": "/server/vercel-simple.js"
     },
     {
-      "src": "/assets/(.*)",
-      "dest": "/assets/$1"
-    },
-    {
-      "src": "/vite.svg",
-      "dest": "/vite.svg"
-    },
-    {
-      "src": "/favicon.ico",
-      "dest": "/server/vercel-simple.js"
-    },
-    {
       "src": "/(.*)",
       "dest": "/server/vercel-simple.js"
     }
