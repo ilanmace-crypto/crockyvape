@@ -1,7 +1,10 @@
 const express = require('express');
 const cors = require('cors');
+ const path = require('path');
 
 const app = express();
+
+ const projectRoot = path.join(__dirname, '..');
 
 // Set CSP headers
 app.use((req, res, next) => {
@@ -20,9 +23,9 @@ app.use(cors({
 app.use(express.json());
 
 // Serve static files from root
-app.use(express.static('public'));
-app.use(express.static('.'));
-app.use('/assets', express.static('assets'));
+app.use(express.static(path.join(projectRoot, 'public')));
+app.use(express.static(projectRoot));
+app.use('/assets', express.static(path.join(projectRoot, 'assets')));
 
 // Favicon handler
 app.get('/favicon.ico', (req, res) => {
@@ -31,12 +34,12 @@ app.get('/favicon.ico', (req, res) => {
 
 // Vite.svg handler
 app.get('/vite.svg', (req, res) => {
-  res.sendFile('vite.svg', { root: '.' });
+  res.sendFile(path.join(projectRoot, 'vite.svg'));
 });
 
 // Root route handler - serve index.html
 app.get('/', (req, res) => {
-  res.sendFile('index.html', { root: '.' });
+  res.sendFile(path.join(projectRoot, 'index.html'));
 });
 
 // Health check
@@ -92,12 +95,12 @@ app.post('/admin/login', (req, res) => {
 });
 
 // Catch-all handler for React Router
-app.get('*', (req, res) => {
+app.get(/.*/, (req, res) => {
   // Don't intercept API routes
   if (req.path.startsWith('/api') || req.path.startsWith('/admin') || req.path === '/health') {
     return res.status(404).json({ error: 'Route not found' });
   }
-  res.sendFile('index.html', { root: '.' });
+  res.sendFile(path.join(projectRoot, 'index.html'));
 });
 
 // Global error handler
