@@ -225,8 +225,16 @@ function ProductModal({ product, onClose, onAdd }) {
 
   const normalizedFlavors = Array.isArray(product.flavors)
     ? product.flavors
-      .map((f) => (typeof f === 'string' ? f : (f.flavor_name || f.name)))
-      .filter(Boolean)
+      .map((f) => {
+        if (typeof f === 'string') {
+          return { name: f, stock: 0 }
+        }
+        return {
+          name: f?.flavor_name || f?.name || '',
+          stock: Number(f?.stock ?? 0),
+        }
+      })
+      .filter((f) => f?.name)
     : []
 
   const canAdd = qty > 0 && (normalizedFlavors.length === 0 || selectedFlavor)
@@ -255,12 +263,13 @@ function ProductModal({ product, onClose, onAdd }) {
               <div className="flavor-chips">
                 {normalizedFlavors.map((f) => (
                   <button
-                    key={f}
+                    key={f.name}
                     type="button"
-                    className={`chip ${selectedFlavor === f ? 'active' : ''}`}
-                    onClick={() => setSelectedFlavor(f)}
+                    className={`chip ${selectedFlavor === f.name ? 'active' : ''}`}
+                    disabled={Number(f.stock) <= 0}
+                    onClick={() => setSelectedFlavor(f.name)}
                   >
-                    {f}
+                    {f.name} ({Number(f.stock) || 0})
                   </button>
                 ))}
               </div>
@@ -583,10 +592,17 @@ function MainApp() {
   const addToCart = (product, flavor, qty) => {
     // Проверка остатков
     if (flavor) {
-      const flavorData = product.flavors?.find(f => 
-        (typeof f === 'string' ? f : (f.flavor_name || f.name)) === flavor
-      );
-      const stock = typeof flavorData === 'object' ? flavorData?.stock : 0;
+      const normalizedSelected = String(flavor || '').trim()
+      const flavorData = product.flavors?.find(f => {
+        const name = typeof f === 'string' ? f : (f.flavor_name || f.name)
+        return String(name || '').trim() === normalizedSelected
+      });
+
+      const stock = Number(
+        typeof flavorData === 'object'
+          ? (flavorData?.stock ?? product.stock)
+          : product.stock
+      )
       if (stock < qty) {
         alert(`Остаток по вкусу "${flavor}": ${stock} шт.`);
         return;
@@ -618,10 +634,16 @@ function MainApp() {
       // Проверка остатков при увеличении количества
       const newQty = existing.qty + qty;
       if (flavor) {
-        const flavorData = product.flavors?.find(f => 
-          (typeof f === 'string' ? f : (f.flavor_name || f.name)) === flavor
-        );
-        const stock = typeof flavorData === 'object' ? flavorData?.stock : 0;
+        const normalizedSelected = String(flavor || '').trim()
+        const flavorData = product.flavors?.find(f => {
+          const name = typeof f === 'string' ? f : (f.flavor_name || f.name)
+          return String(name || '').trim() === normalizedSelected
+        });
+        const stock = Number(
+          typeof flavorData === 'object'
+            ? (flavorData?.stock ?? product.stock)
+            : product.stock
+        )
         if (stock < newQty) {
           alert(`Остаток по вкусу "${flavor}": ${stock} шт.`);
           return prev;
