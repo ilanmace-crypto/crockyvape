@@ -86,7 +86,7 @@ app.use(
     },
   })
 );
-app.use(express.static(projectRoot));
+app.use(express.static(projectRoot, { index: false }));
 
 // Favicon handler
 app.get('/favicon.ico', (req, res) => {
