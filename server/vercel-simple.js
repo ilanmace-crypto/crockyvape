@@ -2,24 +2,14 @@ const express = require('express');
 const cors = require('cors');
  const path = require('path');
  const crypto = require('crypto');
+ require('dotenv').config();
+
+ // Neon Postgres pool
+ const pool = require('./config/neon');
 
 const app = express();
 
  const projectRoot = path.join(__dirname, '..');
-
- let products = [
-  {
-    id: '1',
-    name: 'Test Liquid',
-    price: 25,
-    stock: 10,
-    category_id: 1,
-    category_name: 'Жидкости',
-    flavors: [],
-  },
- ];
-
- let orders = [];
 
  const requireAdminAuth = (req, res, next) => {
   const auth = req.headers.authorization || '';
@@ -83,45 +73,130 @@ app.get('/api/debug', (req, res) => {
   });
 });
 
-// Mock products endpoint
+// Products
 app.get('/api/products', (req, res) => {
-  res.json(products);
+  (async () => {
+    try {
+      const result = await pool.query(`
+        SELECT p.*, c.name as category_name
+        FROM products p
+        LEFT JOIN categories c ON p.category_id = c.id
+        ORDER BY p.name
+      `);
+
+      for (const product of result.rows) {
+        const flavors = await pool.query(
+          'SELECT * FROM product_flavors WHERE product_id = $1 ORDER BY flavor_name',
+          [product.id]
+        );
+        product.flavors = flavors.rows;
+      }
+
+      res.json(result.rows);
+    } catch (error) {
+      console.error('Products error:', error);
+      res.status(500).json({ error: 'Failed to fetch products' });
+    }
+  })();
 });
 
 // Aliases (some parts of the frontend can call without /api)
 app.get('/products', (req, res) => {
-  res.json(products);
+  (async () => {
+    try {
+      const result = await pool.query(`
+        SELECT p.*, c.name as category_name
+        FROM products p
+        LEFT JOIN categories c ON p.category_id = c.id
+        ORDER BY p.name
+      `);
+
+      for (const product of result.rows) {
+        const flavors = await pool.query(
+          'SELECT * FROM product_flavors WHERE product_id = $1 ORDER BY flavor_name',
+          [product.id]
+        );
+        product.flavors = flavors.rows;
+      }
+
+      res.json(result.rows);
+    } catch (error) {
+      console.error('Products error:', error);
+      res.status(500).json({ error: 'Failed to fetch products' });
+    }
+  })();
 });
 
 // Create order
-app.post('/api/orders', (req, res) => {
-  const { items, telegram_user } = req.body || {};
+const createOrder = async (req, res) => {
+  try {
+    const { items, telegram_user } = req.body || {};
 
-  if (!Array.isArray(items) || items.length === 0) {
-    return res.status(400).json({ error: 'Missing items' });
+    if (!Array.isArray(items) || items.length === 0) {
+      return res.status(400).json({ error: 'Missing items' });
+    }
+
+    const totalAmount = items.reduce(
+      (sum, item) => sum + Number(item?.price || 0) * Number(item?.quantity || item?.qty || 0),
+      0
+    );
+
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
+
+      const orderId = crypto.randomUUID();
+      const telegramId = telegram_user?.telegram_id || null;
+      const telegramUsername = telegram_user?.telegram_username || null;
+
+      const orderResult = await client.query(
+        `
+        INSERT INTO orders (id, user_id, total_amount, telegram_id, telegram_username)
+        VALUES ($1, NULL, $2, $3, $4)
+        RETURNING *
+      `,
+        [orderId, totalAmount, telegramId, telegramUsername]
+      );
+
+      for (const item of items) {
+        await client.query(
+          `
+          INSERT INTO order_items (order_id, product_id, flavor_name, quantity, price)
+          VALUES ($1, $2, $3, $4, $5)
+        `,
+          [
+            orderId,
+            item.product_id || item.id,
+            item.flavor_name || item.flavor || null,
+            Number(item.quantity || item.qty || 0),
+            Number(item.price || 0),
+          ]
+        );
+      }
+
+      await client.query('COMMIT');
+
+      const order = orderResult.rows[0];
+      return res.json({
+        id: order.id,
+        status: 'created',
+        message: 'Order created',
+        total_amount: totalAmount,
+      });
+    } catch (error) {
+      await client.query('ROLLBACK');
+      throw error;
+    } finally {
+      client.release();
+    }
+  } catch (error) {
+    console.error('Order creation error:', error);
+    return res.status(500).json({ error: 'Failed to create order', details: error.message });
   }
+};
 
-  const totalAmount = items.reduce(
-    (sum, item) => sum + Number(item?.price || 0) * Number(item?.quantity || item?.qty || 0),
-    0
-  );
-
-  const order = {
-    id: crypto.randomUUID(),
-    items,
-    telegram_user: telegram_user || null,
-    total_amount: totalAmount,
-    status: 'created',
-    created_at: new Date().toISOString(),
-  };
-
-  orders.push(order);
-  res.json({ id: order.id, status: order.status, message: 'Order created', total_amount: order.total_amount });
-});
-
-app.post('/orders', (req, res) => {
-  return app._router.handle({ ...req, url: '/api/orders' }, res, () => {});
-});
+app.post('/api/orders', createOrder);
+app.post('/orders', createOrder);
 
 // Mock admin login
 app.post('/admin/login', (req, res) => {
@@ -144,76 +219,204 @@ app.post('/admin/login', (req, res) => {
 
 // Admin products CRUD (minimal in-memory implementation)
 app.get('/admin/products', requireAdminAuth, (req, res) => {
-  res.json(products);
+  (async () => {
+    try {
+      const result = await pool.query(`
+        SELECT p.*, c.name as category_name
+        FROM products p
+        LEFT JOIN categories c ON p.category_id = c.id
+        ORDER BY p.created_at DESC
+      `);
+
+      for (const product of result.rows) {
+        const flavors = await pool.query(
+          'SELECT * FROM product_flavors WHERE product_id = $1 ORDER BY flavor_name',
+          [product.id]
+        );
+        product.flavors = flavors.rows;
+      }
+
+      res.json(result.rows);
+    } catch (error) {
+      console.error('Admin products error:', error);
+      res.status(500).json({ error: 'Failed to fetch products' });
+    }
+  })();
 });
 
 app.post('/admin/products', requireAdminAuth, (req, res) => {
-  const { name, category_id, price, description, stock, flavors, image_url } = req.body || {};
+  (async () => {
+    try {
+      const { name, category_id, category, price, description, stock, flavors, image_url } = req.body || {};
 
-  if (!name || price === undefined || price === null) {
-    return res.status(400).json({ error: 'Name and price are required' });
-  }
+      if (!name || price === undefined || price === null) {
+        return res.status(400).json({ error: 'Name and price are required' });
+      }
 
-  const resolvedCategoryId = Number(category_id) || 1;
+      let resolvedCategoryId = category_id;
+      if (!resolvedCategoryId && category) {
+        if (category === 'liquids') resolvedCategoryId = 1;
+        else if (category === 'consumables') resolvedCategoryId = 2;
+      }
+      resolvedCategoryId = Number(resolvedCategoryId) || 1;
 
-  const product = {
-    id: crypto.randomUUID(),
-    name,
-    category_id: resolvedCategoryId,
-    price: Number(price),
-    description: description || null,
-    stock: Number(stock || 0),
-    image_url: image_url || null,
-    flavors: Array.isArray(flavors)
-      ? flavors.map((f) => ({
-        flavor_name: f?.flavor_name || f?.name || String(f || ''),
-        stock: Number(f?.stock ?? 0),
-      })).filter((f) => f.flavor_name)
-      : [],
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-  };
+      const client = await pool.connect();
+      try {
+        await client.query('BEGIN');
 
-  products.push(product);
-  res.json(product);
+        const id = crypto.randomUUID();
+        const productResult = await client.query(
+          `
+          INSERT INTO products (id, name, category_id, price, description, stock, image_url)
+          VALUES ($1, $2, $3, $4, $5, $6, $7)
+          RETURNING *
+        `,
+          [id, name, resolvedCategoryId, Number(price), description || null, Number(stock || 0), image_url || null]
+        );
+
+        const product = productResult.rows[0];
+
+        if (Array.isArray(flavors) && flavors.length > 0) {
+          for (const flavor of flavors) {
+            const flavorName = flavor?.flavor_name || flavor?.name;
+            const flavorStock = Number(flavor?.stock ?? 0);
+            if (flavorName) {
+              await client.query(
+                `
+                INSERT INTO product_flavors (product_id, flavor_name, stock)
+                VALUES ($1, $2, $3)
+              `,
+                [product.id, flavorName, flavorStock]
+              );
+            }
+          }
+        }
+
+        await client.query('COMMIT');
+
+        const flavorsResult = await pool.query(
+          'SELECT * FROM product_flavors WHERE product_id = $1 ORDER BY flavor_name',
+          [product.id]
+        );
+        product.flavors = flavorsResult.rows;
+
+        res.json(product);
+      } catch (error) {
+        await client.query('ROLLBACK');
+        throw error;
+      } finally {
+        client.release();
+      }
+    } catch (error) {
+      console.error('Create product error:', error);
+      res.status(500).json({ error: 'Failed to create product', details: error.message });
+    }
+  })();
 });
 
 app.put('/admin/products/:id', requireAdminAuth, (req, res) => {
-  const { id } = req.params;
-  const idx = products.findIndex((p) => String(p.id) === String(id));
-  if (idx === -1) return res.status(404).json({ error: 'Product not found' });
+  (async () => {
+    try {
+      const { id } = req.params;
+      const { name, category_id, category, price, description, stock, flavors, image_url } = req.body || {};
 
-  const { name, category_id, price, description, stock, flavors, image_url } = req.body || {};
-  if (!name || price === undefined || price === null) {
-    return res.status(400).json({ error: 'Name and price are required' });
-  }
+      if (!name || price === undefined || price === null) {
+        return res.status(400).json({ error: 'Name and price are required' });
+      }
 
-  products[idx] = {
-    ...products[idx],
-    name,
-    category_id: Number(category_id) || products[idx].category_id,
-    price: Number(price),
-    description: description || null,
-    stock: Number(stock || 0),
-    image_url: image_url || null,
-    flavors: Array.isArray(flavors)
-      ? flavors.map((f) => ({
-        flavor_name: f?.flavor_name || f?.name || String(f || ''),
-        stock: Number(f?.stock ?? 0),
-      })).filter((f) => f.flavor_name)
-      : [],
-    updated_at: new Date().toISOString(),
-  };
+      let resolvedCategoryId = category_id;
+      if (!resolvedCategoryId && category) {
+        if (category === 'liquids') resolvedCategoryId = 1;
+        else if (category === 'consumables') resolvedCategoryId = 2;
+      }
+      resolvedCategoryId = Number(resolvedCategoryId) || 1;
 
-  res.json(products[idx]);
+      const client = await pool.connect();
+      try {
+        await client.query('BEGIN');
+
+        const productResult = await client.query(
+          `
+          UPDATE products
+          SET name = $1, category_id = $2, price = $3, description = $4, stock = $5, image_url = $6, updated_at = NOW()
+          WHERE id = $7
+          RETURNING *
+        `,
+          [name, resolvedCategoryId, Number(price), description || null, Number(stock || 0), image_url || null, id]
+        );
+
+        if (productResult.rows.length === 0) {
+          await client.query('ROLLBACK');
+          return res.status(404).json({ error: 'Product not found' });
+        }
+
+        await client.query('DELETE FROM product_flavors WHERE product_id = $1', [id]);
+
+        if (Array.isArray(flavors) && flavors.length > 0) {
+          for (const flavor of flavors) {
+            const flavorName = flavor?.flavor_name || flavor?.name;
+            const flavorStock = Number(flavor?.stock ?? 0);
+            if (flavorName) {
+              await client.query(
+                `
+                INSERT INTO product_flavors (product_id, flavor_name, stock)
+                VALUES ($1, $2, $3)
+              `,
+                [id, flavorName, flavorStock]
+              );
+            }
+          }
+        }
+
+        await client.query('COMMIT');
+
+        const product = productResult.rows[0];
+        const flavorsResult = await pool.query(
+          'SELECT * FROM product_flavors WHERE product_id = $1 ORDER BY flavor_name',
+          [id]
+        );
+        product.flavors = flavorsResult.rows;
+
+        res.json(product);
+      } catch (error) {
+        await client.query('ROLLBACK');
+        throw error;
+      } finally {
+        client.release();
+      }
+    } catch (error) {
+      console.error('Update product error:', error);
+      res.status(500).json({ error: 'Failed to update product', details: error.message });
+    }
+  })();
 });
 
 app.delete('/admin/products/:id', requireAdminAuth, (req, res) => {
-  const { id } = req.params;
-  const idx = products.findIndex((p) => String(p.id) === String(id));
-  if (idx === -1) return res.status(404).json({ error: 'Product not found' });
-  products.splice(idx, 1);
-  res.json({ success: true });
+  (async () => {
+    try {
+      const { id } = req.params;
+      const client = await pool.connect();
+      try {
+        await client.query('BEGIN');
+        await client.query('DELETE FROM product_flavors WHERE product_id = $1', [id]);
+        const result = await client.query('DELETE FROM products WHERE id = $1 RETURNING *', [id]);
+        if (result.rows.length === 0) {
+          await client.query('ROLLBACK');
+          return res.status(404).json({ error: 'Product not found' });
+        }
+        await client.query('COMMIT');
+        res.json({ success: true });
+      } catch (error) {
+        await client.query('ROLLBACK');
+        throw error;
+      } finally {
+        client.release();
+      }
+    } catch (error) {
+      console.error('Delete product error:', error);
+      res.status(500).json({ error: 'Failed to delete product', details: error.message });
+    }
+  })();
 });
 
 // Catch-all handler for React Router
