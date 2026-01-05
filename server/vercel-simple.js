@@ -184,10 +184,9 @@ app.get('/api/products/:id/image', (req, res) => {
       const row = result.rows[0];
       const base64 = row.data; // stored as TEXT
       const buf = Buffer.from(base64, 'base64');
-      res.setHeader('Content-Type', row.mime_type);
+      res.type(row.mime_type);
       res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
-      res.setHeader('Content-Length', buf.length);
-      return res.end(buf);
+      return res.send(buf);
     } catch (e) {
       console.error('Product image error:', e);
       return res.status(500).end();
