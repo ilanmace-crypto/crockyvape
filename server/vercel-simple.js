@@ -183,10 +183,10 @@ app.get('/api/products/:id/image', (req, res) => {
       if (result.rows.length === 0) return res.status(404).end();
       const row = result.rows[0];
       const base64 = row.data; // stored as TEXT
-      const dataUrl = `data:${row.mime_type};base64,${base64}`;
-      res.setHeader('Content-Type', row.mime_type);
+      const buf = Buffer.from(base64, 'base64');
+      res.type(row.mime_type);
       res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
-      return res.send(dataUrl);
+      return res.send(buf);
     } catch (e) {
       console.error('Product image error:', e);
       return res.status(500).end();
