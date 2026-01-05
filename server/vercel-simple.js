@@ -12,6 +12,23 @@ const app = express();
 
  const projectRoot = path.join(__dirname, '..');
 
+ const sendTelegramMessage = async (text) => {
+  try {
+    const token = process.env.TELEGRAM_BOT_TOKEN;
+    const chatId = process.env.TELEGRAM_GROUP_CHAT_ID || process.env.TELEGRAM_ADMIN_CHAT_ID;
+    if (!token || !chatId) return;
+
+    const url = `https://api.telegram.org/bot${token}/sendMessage`;
+    await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ chat_id: chatId, text, parse_mode: 'HTML' }),
+    });
+  } catch (e) {
+    console.error('Telegram notify error:', e);
+  }
+ };
+
  const renderIndexHtml = (res) => {
   try {
     const assetsDir = path.join(projectRoot, 'assets');
@@ -298,6 +315,16 @@ const createOrder = async (req, res) => {
       }
 
       for (const item of items) {
+        const productId = String(item.product_id || item.id || '').trim();
+        const qty = Number(item.quantity || item.qty || 0);
+        const price = Number(item.price || 0);
+        const flavorNameRaw = item.flavor_name || item.flavor || null;
+        const flavorName = flavorNameRaw ? String(flavorNameRaw).trim() : null;
+
+        if (!productId || !Number.isFinite(qty) || qty <= 0) {
+          throw new Error('Invalid order item');
+        }
+
         await client.query(
           `
           INSERT INTO order_items (order_id, product_id, flavor_name, quantity, price)
@@ -305,15 +332,91 @@ const createOrder = async (req, res) => {
         `,
           [
             orderId,
-            item.product_id || item.id,
-            item.flavor_name || item.flavor || null,
-            Number(item.quantity || item.qty || 0),
-            Number(item.price || 0),
+            productId,
+            flavorName,
+            qty,
+            price,
           ]
         );
+
+        if (flavorName) {
+          const updatedFlavor = await client.query(
+            `UPDATE product_flavors
+             SET stock = stock - $1
+             WHERE product_id = $2 AND flavor_name = $3 AND stock >= $1
+             RETURNING stock`,
+            [qty, productId, flavorName]
+          );
+
+          if (updatedFlavor.rows.length === 0) {
+            throw new Error(`Нет остатка по вкусу: ${flavorName}`);
+          }
+
+          const sumRes = await client.query(
+            'SELECT COALESCE(SUM(stock), 0) AS total FROM product_flavors WHERE product_id = $1',
+            [productId]
+          );
+          const total = Number(sumRes.rows?.[0]?.total || 0);
+          await client.query(
+            'UPDATE products SET stock = $1, is_active = CASE WHEN $1 <= 0 THEN false ELSE is_active END, updated_at = NOW() WHERE id = $2',
+            [total, productId]
+          );
+        } else {
+          const updatedProduct = await client.query(
+            `UPDATE products
+             SET stock = stock - $1,
+                 is_active = CASE WHEN (stock - $1) <= 0 THEN false ELSE is_active END,
+                 updated_at = NOW()
+             WHERE id = $2 AND stock >= $1
+             RETURNING stock`,
+            [qty, productId]
+          );
+          if (updatedProduct.rows.length === 0) {
+            throw new Error('Нет остатка по товару');
+          }
+        }
       }
 
       await client.query('COMMIT');
+
+      try {
+        const itemsWithNames = await Promise.all(
+          (items || []).map(async (it) => {
+            const productId = String(it.product_id || it.id || '').trim();
+            const productResult = await client.query('SELECT name FROM products WHERE id = $1', [productId]);
+            return {
+              ...it,
+              name: productResult.rows[0]?.name || productId,
+            };
+          })
+        );
+
+        const lines = itemsWithNames.map((it) => {
+          const name = it.name;
+          const fl = it.flavor_name ? ` (${it.flavor_name})` : (it.flavor ? ` (${it.flavor})` : '');
+          const qty = Number(it.quantity || it.qty || 0);
+          const price = Number(it.price || 0);
+          return `- ${name}${fl} x${qty} = ${(price * qty).toFixed(2)} BYN`;
+        });
+
+        const tg = telegram_user?.telegram_username
+          ? `@${telegram_user.telegram_username}`
+          : (telegram_user?.telegram_first_name || '');
+
+        await sendTelegramMessage(
+          `🔔 <b>НОВЫЙ ЗАКАЗ</b>\n\n` +
+          `👤 <b>Клиент:</b> ${tg || 'Не указано'}\n` +
+          `${phone ? `📞 <b>Телефон:</b> ${phone}\n` : ''}` +
+          `${delivery_address ? `🏠 <b>Адрес:</b> ${delivery_address}\n` : ''}` +
+          `${notes ? `📝 <b>Комментарий:</b> ${notes}\n` : ''}` +
+          `\n📦 <b>Состав заказа:</b>\n` +
+          `${lines.join('\n')}\n\n` +
+          `💳 <b>Итого:</b> ${Number(totalAmount).toFixed(2)} BYN\n` +
+          `🆔 <b>Order ID:</b> ${orderId}`
+        );
+      } catch (e) {
+        console.error('Telegram notification build error:', e);
+      }
 
       const order = orderResult.rows[0];
       return res.json({
