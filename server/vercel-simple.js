@@ -17,11 +17,29 @@ const app = express();
     const assetsDir = path.join(projectRoot, 'assets');
     const files = fs.existsSync(assetsDir) ? fs.readdirSync(assetsDir) : [];
 
-    const jsCandidates = files.filter((f) => /^index-.*\.js$/.test(f)).sort();
-    const cssCandidates = files.filter((f) => /^index-.*\.css$/.test(f)).sort();
+    const pickLatestByMtime = (candidates) => {
+      let best = null;
+      let bestMtime = -1;
+      for (const f of candidates) {
+        try {
+          const stat = fs.statSync(path.join(assetsDir, f));
+          const m = Number(stat.mtimeMs || 0);
+          if (m > bestMtime) {
+            bestMtime = m;
+            best = f;
+          }
+        } catch {
+          // ignore
+        }
+      }
+      return best;
+    };
 
-    const jsFile = jsCandidates[jsCandidates.length - 1] || null;
-    const cssFile = cssCandidates[cssCandidates.length - 1] || null;
+    const jsCandidates = files.filter((f) => /^index-.*\.js$/.test(f));
+    const cssCandidates = files.filter((f) => /^index-.*\.css$/.test(f));
+
+    const jsFile = pickLatestByMtime(jsCandidates);
+    const cssFile = pickLatestByMtime(cssCandidates);
 
     if (!jsFile || !cssFile) {
       res.setHeader('Cache-Control', 'no-store');
