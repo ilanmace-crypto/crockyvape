@@ -182,9 +182,15 @@ app.get('/api/products/:id/image', (req, res) => {
       const result = await pool.query('SELECT mime_type, data FROM product_images WHERE product_id = $1', [id]);
       if (result.rows.length === 0) return res.status(404).end();
       const row = result.rows[0];
+      const buf = row.data; // should be a Buffer
+      if (!Buffer.isBuffer(buf)) {
+        console.error('product_images.data is not a Buffer for product_id', id);
+        return res.status(500).end();
+      }
       res.setHeader('Content-Type', row.mime_type);
       res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
-      return res.send(row.data);
+      res.setHeader('Content-Length', buf.length);
+      return res.send(buf);
     } catch (e) {
       console.error('Product image error:', e);
       return res.status(500).end();
