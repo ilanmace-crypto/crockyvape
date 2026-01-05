@@ -220,7 +220,7 @@ app.get('/api/products', (req, res) => {
 
       for (const product of result.rows) {
         if (imageMap.get(product.id)) {
-          product.image_url = `/api/products/${product.id}/image`;
+          const imgRes = await pool.query('SELECT mime_type, data FROM product_images WHERE product_id = $1', [product.id]); if (imgRes.rows.length > 0) { const row = imgRes.rows[0]; product.image_url = `data:${row.mime_type};base64,${row.data}`; };
         }
         const flavors = await pool.query(
           'SELECT * FROM product_flavors WHERE product_id = $1 ORDER BY flavor_name',
@@ -261,7 +261,7 @@ app.get('/products', (req, res) => {
 
       for (const product of result.rows) {
         if (imageMap.get(product.id)) {
-          product.image_url = `/api/products/${product.id}/image`;
+          const imgRes = await pool.query('SELECT mime_type, data FROM product_images WHERE product_id = $1', [product.id]); if (imgRes.rows.length > 0) { const row = imgRes.rows[0]; product.image_url = `data:${row.mime_type};base64,${row.data}`; };
         }
         const flavors = await pool.query(
           'SELECT * FROM product_flavors WHERE product_id = $1 ORDER BY flavor_name',
