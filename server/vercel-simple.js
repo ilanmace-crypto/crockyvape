@@ -173,27 +173,6 @@ app.get('/health', (req, res) => {
   });
 });
 
-// Product image endpoint
-app.get('/api/products/:id/image', (req, res) => {
-  (async () => {
-    try {
-      await ensureSchemaReady();
-      const { id } = req.params;
-      const result = await pool.query('SELECT mime_type, data FROM product_images WHERE product_id = $1', [id]);
-      if (result.rows.length === 0) return res.status(404).end();
-      const row = result.rows[0];
-      const base64 = row.data; // stored as TEXT
-      const dataUrl = `data:${row.mime_type};base64,${base64}`;
-      res.type(row.mime_type);
-      res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
-      return res.send(dataUrl);
-    } catch (e) {
-      console.error('Product image error:', e);
-      return res.status(500).end();
-    }
-  })();
-});
-
 // Debug endpoint
 app.get('/api/debug', (req, res) => {
   res.json({
