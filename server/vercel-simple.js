@@ -184,9 +184,7 @@ app.get('/api/products/:id/image', (req, res) => {
       const row = result.rows[0];
       const base64 = row.data; // stored as TEXT
       const dataUrl = `data:${row.mime_type};base64,${base64}`;
-      res.setHeader('Content-Type', row.mime_type);
-      res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
-      return res.send(dataUrl);
+      return res.redirect(307, dataUrl);
     } catch (e) {
       console.error('Product image error:', e);
       return res.status(500).end();
