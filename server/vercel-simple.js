@@ -497,6 +497,18 @@ app.post('/admin/products', requireAdminAuth, (req, res) => {
         });
       }
 
+      if (typeof image_url === 'string' && image_url.startsWith('data:')) {
+        return res.status(400).json({
+          error: 'Image upload is not supported. Please paste an image URL.',
+        });
+      }
+
+      if (typeof image_url === 'string' && image_url.length > 500) {
+        return res.status(400).json({
+          error: 'Image URL is too long (max 500 chars). Please use a shorter URL.',
+        });
+      }
+
       if (!name || price === undefined || price === null) {
         return res.status(400).json({ error: 'Name and price are required' });
       }
@@ -571,6 +583,18 @@ app.put('/admin/products/:id', requireAdminAuth, (req, res) => {
       if (typeof image_url === 'string' && image_url.startsWith('data:') && image_url.length > 2_000_000) {
         return res.status(400).json({
           error: 'Image too large. Use a URL or smaller image.',
+        });
+      }
+
+      if (typeof image_url === 'string' && image_url.startsWith('data:')) {
+        return res.status(400).json({
+          error: 'Image upload is not supported. Please paste an image URL.',
+        });
+      }
+
+      if (typeof image_url === 'string' && image_url.length > 500) {
+        return res.status(400).json({
+          error: 'Image URL is too long (max 500 chars). Please use a shorter URL.',
         });
       }
 
