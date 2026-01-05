@@ -117,7 +117,21 @@ app.get('/api/debug', (req, res) => {
   res.json({
     message: 'Debug working',
     timestamp: new Date().toISOString(),
-    environment: process.env.NODE_ENV
+    environment: process.env.NODE_ENV,
+    vercel: {
+      gitCommitSha: process.env.VERCEL_GIT_COMMIT_SHA,
+      gitCommitMessage: process.env.VERCEL_GIT_COMMIT_MESSAGE,
+      gitCommitRef: process.env.VERCEL_GIT_COMMIT_REF,
+      gitRepoSlug: process.env.VERCEL_GIT_REPO_SLUG,
+      gitRepoOwner: process.env.VERCEL_GIT_REPO_OWNER,
+      region: process.env.VERCEL_REGION,
+      url: process.env.VERCEL_URL,
+    },
+    runtime: {
+      node: process.version,
+      pid: process.pid,
+      cwd: process.cwd(),
+    }
   });
 });
 
