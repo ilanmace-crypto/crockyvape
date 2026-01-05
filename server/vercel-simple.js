@@ -19,7 +19,7 @@ const app = express();
     await pool.query(
       `
       CREATE TABLE IF NOT EXISTS product_images (
-        product_id UUID PRIMARY KEY REFERENCES products(id) ON DELETE CASCADE,
+        product_id TEXT PRIMARY KEY,
         mime_type TEXT NOT NULL,
         data BYTEA NOT NULL,
         updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
@@ -231,7 +231,7 @@ app.get('/api/products', (req, res) => {
       let imageMap = new Map();
       if (ids.length > 0) {
         const imgRes = await pool.query(
-          'SELECT product_id FROM product_images WHERE product_id = ANY($1::uuid[])',
+          'SELECT product_id FROM product_images WHERE product_id = ANY($1::text[])',
           [ids]
         );
         imageMap = new Map(imgRes.rows.map((r) => [r.product_id, true]));
@@ -272,7 +272,7 @@ app.get('/products', (req, res) => {
       let imageMap = new Map();
       if (ids.length > 0) {
         const imgRes = await pool.query(
-          'SELECT product_id FROM product_images WHERE product_id = ANY($1::uuid[])',
+          'SELECT product_id FROM product_images WHERE product_id = ANY($1::text[])',
           [ids]
         );
         imageMap = new Map(imgRes.rows.map((r) => [r.product_id, true]));
