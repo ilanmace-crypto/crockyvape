@@ -236,19 +236,17 @@ const createOrder = async (req, res) => {
     try {
       await client.query('BEGIN');
 
-      const orderId = crypto.randomUUID();
       const resolvedUserId = user_id !== undefined && user_id !== null && String(user_id).trim() !== ''
         ? String(user_id)
         : null;
 
       const orderResult = await client.query(
         `
-        INSERT INTO orders (id, user_id, total_amount, delivery_address, phone, notes)
-        VALUES ($1, $2, $3, $4, $5, $6)
+        INSERT INTO orders (user_id, total_amount, delivery_address, phone, notes)
+        VALUES ($1, $2, $3, $4, $5)
         RETURNING *
       `,
         [
-          orderId,
           resolvedUserId,
           totalAmount,
           delivery_address || null,
@@ -256,6 +254,11 @@ const createOrder = async (req, res) => {
           notes || null,
         ]
       );
+
+      const orderId = orderResult.rows?.[0]?.id;
+      if (!orderId) {
+        throw new Error('Failed to create order id');
+      }
 
       for (const item of items) {
         await client.query(
