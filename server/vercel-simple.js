@@ -210,32 +210,51 @@ app.get('/products', (req, res) => {
 // Create order
 const createOrder = async (req, res) => {
   try {
-    const { items, telegram_user } = req.body || {};
+    const {
+      items,
+      telegram_user,
+      user_id,
+      total_amount,
+      delivery_address,
+      phone,
+      notes,
+    } = req.body || {};
 
     if (!Array.isArray(items) || items.length === 0) {
       return res.status(400).json({ error: 'Missing items' });
     }
 
-    const totalAmount = items.reduce(
+    const computedTotalAmount = items.reduce(
       (sum, item) => sum + Number(item?.price || 0) * Number(item?.quantity || item?.qty || 0),
       0
     );
+    const totalAmount = Number.isFinite(Number(total_amount))
+      ? Number(total_amount)
+      : computedTotalAmount;
 
     const client = await pool.connect();
     try {
       await client.query('BEGIN');
 
       const orderId = crypto.randomUUID();
-      const telegramId = telegram_user?.telegram_id || null;
-      const telegramUsername = telegram_user?.telegram_username || null;
+      const resolvedUserId = user_id !== undefined && user_id !== null && String(user_id).trim() !== ''
+        ? String(user_id)
+        : null;
 
       const orderResult = await client.query(
         `
-        INSERT INTO orders (id, user_id, total_amount, telegram_id, telegram_username)
-        VALUES ($1, NULL, $2, $3, $4)
+        INSERT INTO orders (id, user_id, total_amount, delivery_address, phone, notes)
+        VALUES ($1, $2, $3, $4, $5, $6)
         RETURNING *
       `,
-        [orderId, totalAmount, telegramId, telegramUsername]
+        [
+          orderId,
+          resolvedUserId,
+          totalAmount,
+          delivery_address || null,
+          phone || null,
+          notes || null,
+        ]
       );
 
       for (const item of items) {
