@@ -187,7 +187,7 @@ app.get('/api/products/:id/image', (req, res) => {
       res.setHeader('Content-Type', row.mime_type);
       res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
       res.setHeader('Content-Length', buf.length);
-      return res.send(buf);
+      return res.end(buf);
     } catch (e) {
       console.error('Product image error:', e);
       return res.status(500).end();
