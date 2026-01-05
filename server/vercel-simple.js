@@ -21,7 +21,7 @@ const app = express();
       CREATE TABLE IF NOT EXISTS product_images (
         product_id TEXT PRIMARY KEY,
         mime_type TEXT NOT NULL,
-        data BYTEA NOT NULL,
+        data TEXT NOT NULL,
         updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
       )
     `
@@ -182,11 +182,8 @@ app.get('/api/products/:id/image', (req, res) => {
       const result = await pool.query('SELECT mime_type, data FROM product_images WHERE product_id = $1', [id]);
       if (result.rows.length === 0) return res.status(404).end();
       const row = result.rows[0];
-      const buf = row.data; // should be a Buffer
-      if (!Buffer.isBuffer(buf)) {
-        console.error('product_images.data is not a Buffer for product_id', id);
-        return res.status(500).end();
-      }
+      const base64 = row.data; // stored as TEXT
+      const buf = Buffer.from(base64, 'base64');
       res.setHeader('Content-Type', row.mime_type);
       res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
       res.setHeader('Content-Length', buf.length);
@@ -618,12 +615,11 @@ app.post('/admin/products', requireAdminAuth, (req, res) => {
         const product = productResult.rows[0];
 
         if (parsedImage) {
-          const buf = Buffer.from(parsedImage.b64, 'base64');
           await client.query(
             `INSERT INTO product_images (product_id, mime_type, data)
              VALUES ($1, $2, $3)
              ON CONFLICT (product_id) DO UPDATE SET mime_type = EXCLUDED.mime_type, data = EXCLUDED.data, updated_at = NOW()`,
-            [product.id, parsedImage.mime, buf]
+            [product.id, parsedImage.mime, parsedImage.b64]
           );
           const stableUrl = `/api/products/${product.id}/image`;
           await client.query('UPDATE products SET image_url = $1, updated_at = NOW() WHERE id = $2', [stableUrl, product.id]);
@@ -725,12 +721,11 @@ app.put('/admin/products/:id', requireAdminAuth, (req, res) => {
         }
 
         if (parsedImage) {
-          const buf = Buffer.from(parsedImage.b64, 'base64');
           await client.query(
             `INSERT INTO product_images (product_id, mime_type, data)
              VALUES ($1, $2, $3)
              ON CONFLICT (product_id) DO UPDATE SET mime_type = EXCLUDED.mime_type, data = EXCLUDED.data, updated_at = NOW()`,
-            [id, parsedImage.mime, buf]
+            [id, parsedImage.mime, parsedImage.b64]
           );
           const stableUrl = `/api/products/${id}/image`;
           await client.query('UPDATE products SET image_url = $1, updated_at = NOW() WHERE id = $2', [stableUrl, id]);
