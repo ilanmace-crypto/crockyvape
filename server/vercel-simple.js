@@ -12,6 +12,32 @@ const app = express();
 
  const projectRoot = path.join(__dirname, '..');
 
+ let schemaReadyPromise = null;
+ const ensureSchemaReady = () => {
+  if (schemaReadyPromise) return schemaReadyPromise;
+  schemaReadyPromise = (async () => {
+    await pool.query(
+      `
+      CREATE TABLE IF NOT EXISTS product_images (
+        product_id UUID PRIMARY KEY REFERENCES products(id) ON DELETE CASCADE,
+        mime_type TEXT NOT NULL,
+        data BYTEA NOT NULL,
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      )
+    `
+    );
+  })();
+  return schemaReadyPromise;
+ };
+
+ const parseDataUrlImage = (value) => {
+  if (typeof value !== 'string') return null;
+  if (!value.startsWith('data:')) return null;
+  const match = value.match(/^data:([^;]+);base64,(.+)$/);
+  if (!match) return null;
+  return { mime: match[1], b64: match[2] };
+ };
+
  const sendTelegramMessage = async (text) => {
   try {
     const token = process.env.TELEGRAM_BOT_TOKEN;
@@ -147,6 +173,25 @@ app.get('/health', (req, res) => {
   });
 });
 
+// Product image endpoint
+app.get('/api/products/:id/image', (req, res) => {
+  (async () => {
+    try {
+      await ensureSchemaReady();
+      const { id } = req.params;
+      const result = await pool.query('SELECT mime_type, data FROM product_images WHERE product_id = $1', [id]);
+      if (result.rows.length === 0) return res.status(404).end();
+      const row = result.rows[0];
+      res.setHeader('Content-Type', row.mime_type);
+      res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+      return res.send(row.data);
+    } catch (e) {
+      console.error('Product image error:', e);
+      return res.status(500).end();
+    }
+  })();
+});
+
 // Debug endpoint
 app.get('/api/debug', (req, res) => {
   res.json({
@@ -174,6 +219,7 @@ app.get('/api/debug', (req, res) => {
 app.get('/api/products', (req, res) => {
   (async () => {
     try {
+      await ensureSchemaReady();
       const result = await pool.query(`
         SELECT p.*, c.name as category_name
         FROM products p
@@ -181,7 +227,20 @@ app.get('/api/products', (req, res) => {
         ORDER BY p.name
       `);
 
+      const ids = result.rows.map((p) => p.id);
+      let imageMap = new Map();
+      if (ids.length > 0) {
+        const imgRes = await pool.query(
+          'SELECT product_id FROM product_images WHERE product_id = ANY($1::uuid[])',
+          [ids]
+        );
+        imageMap = new Map(imgRes.rows.map((r) => [r.product_id, true]));
+      }
+
       for (const product of result.rows) {
+        if (imageMap.get(product.id)) {
+          product.image_url = `/api/products/${product.id}/image`;
+        }
         const flavors = await pool.query(
           'SELECT * FROM product_flavors WHERE product_id = $1 ORDER BY flavor_name',
           [product.id]
@@ -201,6 +260,7 @@ app.get('/api/products', (req, res) => {
 app.get('/products', (req, res) => {
   (async () => {
     try {
+      await ensureSchemaReady();
       const result = await pool.query(`
         SELECT p.*, c.name as category_name
         FROM products p
@@ -208,7 +268,20 @@ app.get('/products', (req, res) => {
         ORDER BY p.name
       `);
 
+      const ids = result.rows.map((p) => p.id);
+      let imageMap = new Map();
+      if (ids.length > 0) {
+        const imgRes = await pool.query(
+          'SELECT product_id FROM product_images WHERE product_id = ANY($1::uuid[])',
+          [ids]
+        );
+        imageMap = new Map(imgRes.rows.map((r) => [r.product_id, true]));
+      }
+
       for (const product of result.rows) {
+        if (imageMap.get(product.id)) {
+          product.image_url = `/api/products/${product.id}/image`;
+        }
         const flavors = await pool.query(
           'SELECT * FROM product_flavors WHERE product_id = $1 ORDER BY flavor_name',
           [product.id]
@@ -491,19 +564,21 @@ app.post('/admin/products', requireAdminAuth, (req, res) => {
     try {
       const { name, category_id, category, price, description, stock, flavors, image_url } = req.body || {};
 
-      if (typeof image_url === 'string' && image_url.startsWith('data:') && image_url.length > 2_000_000) {
-        return res.status(400).json({
-          error: 'Image too large. Use a URL or smaller image.',
-        });
+      await ensureSchemaReady();
+
+      const parsedImage = parseDataUrlImage(image_url);
+      if (parsedImage) {
+        const allowed = new Set(['image/png', 'image/jpeg', 'image/webp', 'image/gif']);
+        if (!allowed.has(parsedImage.mime)) {
+          return res.status(400).json({ error: 'Unsupported image type' });
+        }
+        const approxBytes = Math.floor((parsedImage.b64.length * 3) / 4);
+        if (approxBytes > 2_000_000) {
+          return res.status(400).json({ error: 'Image too large. Max 2MB.' });
+        }
       }
 
-      if (typeof image_url === 'string' && image_url.startsWith('data:')) {
-        return res.status(400).json({
-          error: 'Image upload is not supported. Please paste an image URL.',
-        });
-      }
-
-      if (typeof image_url === 'string' && image_url.length > 500) {
+      if (!parsedImage && typeof image_url === 'string' && image_url.length > 500) {
         return res.status(400).json({
           error: 'Image URL is too long (max 500 chars). Please use a shorter URL.',
         });
@@ -531,10 +606,23 @@ app.post('/admin/products', requireAdminAuth, (req, res) => {
           VALUES ($1, $2, $3, $4, $5, $6, $7)
           RETURNING *
         `,
-          [id, name, resolvedCategoryId, Number(price), description || null, Number(stock || 0), image_url || null]
+          [id, name, resolvedCategoryId, Number(price), description || null, Number(stock || 0), parsedImage ? null : (image_url || null)]
         );
 
         const product = productResult.rows[0];
+
+        if (parsedImage) {
+          const buf = Buffer.from(parsedImage.b64, 'base64');
+          await client.query(
+            `INSERT INTO product_images (product_id, mime_type, data)
+             VALUES ($1, $2, $3)
+             ON CONFLICT (product_id) DO UPDATE SET mime_type = EXCLUDED.mime_type, data = EXCLUDED.data, updated_at = NOW()`,
+            [product.id, parsedImage.mime, buf]
+          );
+          const stableUrl = `/api/products/${product.id}/image`;
+          await client.query('UPDATE products SET image_url = $1, updated_at = NOW() WHERE id = $2', [stableUrl, product.id]);
+          product.image_url = stableUrl;
+        }
 
         if (Array.isArray(flavors) && flavors.length > 0) {
           for (const flavor of flavors) {
@@ -580,19 +668,21 @@ app.put('/admin/products/:id', requireAdminAuth, (req, res) => {
       const { id } = req.params;
       const { name, category_id, category, price, description, stock, flavors, image_url } = req.body || {};
 
-      if (typeof image_url === 'string' && image_url.startsWith('data:') && image_url.length > 2_000_000) {
-        return res.status(400).json({
-          error: 'Image too large. Use a URL or smaller image.',
-        });
+      await ensureSchemaReady();
+
+      const parsedImage = parseDataUrlImage(image_url);
+      if (parsedImage) {
+        const allowed = new Set(['image/png', 'image/jpeg', 'image/webp', 'image/gif']);
+        if (!allowed.has(parsedImage.mime)) {
+          return res.status(400).json({ error: 'Unsupported image type' });
+        }
+        const approxBytes = Math.floor((parsedImage.b64.length * 3) / 4);
+        if (approxBytes > 2_000_000) {
+          return res.status(400).json({ error: 'Image too large. Max 2MB.' });
+        }
       }
 
-      if (typeof image_url === 'string' && image_url.startsWith('data:')) {
-        return res.status(400).json({
-          error: 'Image upload is not supported. Please paste an image URL.',
-        });
-      }
-
-      if (typeof image_url === 'string' && image_url.length > 500) {
+      if (!parsedImage && typeof image_url === 'string' && image_url.length > 500) {
         return res.status(400).json({
           error: 'Image URL is too long (max 500 chars). Please use a shorter URL.',
         });
@@ -616,16 +706,28 @@ app.put('/admin/products/:id', requireAdminAuth, (req, res) => {
         const productResult = await client.query(
           `
           UPDATE products
-          SET name = $1, category_id = $2, price = $3, description = $4, stock = $5, image_url = $6, updated_at = NOW()
+          SET name = $1, category_id = $2, price = $3, description = $4, stock = $5, image_url = COALESCE($6, image_url), updated_at = NOW()
           WHERE id = $7
           RETURNING *
         `,
-          [name, resolvedCategoryId, Number(price), description || null, Number(stock || 0), image_url || null, id]
+          [name, resolvedCategoryId, Number(price), description || null, Number(stock || 0), parsedImage ? null : (image_url || null), id]
         );
 
         if (productResult.rows.length === 0) {
           await client.query('ROLLBACK');
           return res.status(404).json({ error: 'Product not found' });
+        }
+
+        if (parsedImage) {
+          const buf = Buffer.from(parsedImage.b64, 'base64');
+          await client.query(
+            `INSERT INTO product_images (product_id, mime_type, data)
+             VALUES ($1, $2, $3)
+             ON CONFLICT (product_id) DO UPDATE SET mime_type = EXCLUDED.mime_type, data = EXCLUDED.data, updated_at = NOW()`,
+            [id, parsedImage.mime, buf]
+          );
+          const stableUrl = `/api/products/${id}/image`;
+          await client.query('UPDATE products SET image_url = $1, updated_at = NOW() WHERE id = $2', [stableUrl, id]);
         }
 
         await client.query('DELETE FROM product_flavors WHERE product_id = $1', [id]);
@@ -649,6 +751,10 @@ app.put('/admin/products/:id', requireAdminAuth, (req, res) => {
         await client.query('COMMIT');
 
         const product = productResult.rows[0];
+        // If an image is present in product_images, always expose stable URL
+        if (parsedImage) {
+          product.image_url = `/api/products/${id}/image`;
+        }
         const flavorsResult = await pool.query(
           'SELECT * FROM product_flavors WHERE product_id = $1 ORDER BY flavor_name',
           [id]
