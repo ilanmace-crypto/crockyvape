@@ -236,9 +236,46 @@ const createOrder = async (req, res) => {
     try {
       await client.query('BEGIN');
 
-      const resolvedUserId = user_id !== undefined && user_id !== null && String(user_id).trim() !== ''
+      let resolvedUserId = user_id !== undefined && user_id !== null && String(user_id).trim() !== ''
         ? String(user_id)
         : null;
+
+      if (!resolvedUserId) {
+        const tgId = telegram_user?.telegram_id ? String(telegram_user.telegram_id) : null;
+        if (!tgId) {
+          return res.status(400).json({
+            error: 'Missing user',
+            details: 'user_id or telegram_user.telegram_id is required',
+          });
+        }
+
+        const existing = await client.query('SELECT id FROM users WHERE telegram_id = $1', [tgId]);
+        if (existing.rows.length > 0) {
+          resolvedUserId = existing.rows[0].id;
+          await client.query(
+            'UPDATE users SET telegram_username = $1, telegram_first_name = $2, telegram_last_name = $3, phone = $4, updated_at = NOW() WHERE id = $5',
+            [
+              telegram_user?.telegram_username || null,
+              telegram_user?.telegram_first_name || null,
+              telegram_user?.telegram_last_name || null,
+              phone || null,
+              resolvedUserId,
+            ]
+          );
+        } else {
+          const created = await client.query(
+            'INSERT INTO users (telegram_id, telegram_username, telegram_first_name, telegram_last_name, phone) VALUES ($1, $2, $3, $4, $5) RETURNING id',
+            [
+              tgId,
+              telegram_user?.telegram_username || null,
+              telegram_user?.telegram_first_name || null,
+              telegram_user?.telegram_last_name || null,
+              phone || null,
+            ]
+          );
+          resolvedUserId = created.rows[0].id;
+        }
+      }
 
       const orderResult = await client.query(
         `
