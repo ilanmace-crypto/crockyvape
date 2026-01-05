@@ -109,7 +109,7 @@ app.use(cors({
   credentials: true
 }));
 
-app.use(express.json());
+app.use(express.json({ limit: '10mb' }));
 
 // Serve static files from root
 app.use(express.static(path.join(projectRoot, 'public')));
@@ -491,6 +491,12 @@ app.post('/admin/products', requireAdminAuth, (req, res) => {
     try {
       const { name, category_id, category, price, description, stock, flavors, image_url } = req.body || {};
 
+      if (typeof image_url === 'string' && image_url.startsWith('data:') && image_url.length > 2_000_000) {
+        return res.status(400).json({
+          error: 'Image too large. Use a URL or smaller image.',
+        });
+      }
+
       if (!name || price === undefined || price === null) {
         return res.status(400).json({ error: 'Name and price are required' });
       }
@@ -561,6 +567,12 @@ app.put('/admin/products/:id', requireAdminAuth, (req, res) => {
     try {
       const { id } = req.params;
       const { name, category_id, category, price, description, stock, flavors, image_url } = req.body || {};
+
+      if (typeof image_url === 'string' && image_url.startsWith('data:') && image_url.length > 2_000_000) {
+        return res.status(400).json({
+          error: 'Image too large. Use a URL or smaller image.',
+        });
+      }
 
       if (!name || price === undefined || price === null) {
         return res.status(400).json({ error: 'Name and price are required' });
