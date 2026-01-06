@@ -142,7 +142,7 @@ app.use(express.json({ limit: '10mb' }));
 app.use(express.static(path.join(projectRoot, 'public')));
 app.use(
   '/assets',
-  express.static(path.join(projectRoot, 'assets'), {
+  express.static(path.join(projectRoot, 'client/dist/assets'), {
     setHeaders: (res) => {
       res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
     },
