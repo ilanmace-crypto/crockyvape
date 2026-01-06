@@ -89,6 +89,7 @@ const app = express();
       return res.sendFile(path.join(projectRoot, 'index.html'));
     }
 
+    const v = Date.now();
     res.setHeader('Content-Type', 'text/html; charset=utf-8');
     res.setHeader('Cache-Control', 'no-store');
     return res.send(
@@ -99,8 +100,8 @@ const app = express();
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
     <title>PARADISE-SHOP</title>
-    <script type="module" crossorigin src="/assets/${jsFile}"></script>
-    <link rel="stylesheet" crossorigin href="/assets/${cssFile}">
+    <script type="module" crossorigin src="/assets/${jsFile}?v=${v}"></script>
+    <link rel="stylesheet" crossorigin href="/assets/${cssFile}?v=${v}">
   </head>
   <body>
     <div id="root"></div>
