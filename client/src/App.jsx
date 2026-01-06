@@ -188,7 +188,9 @@ function ProductGrid({ title, products, onOpenProduct, query }) {
                 className="card card-clickable"
                 onClick={() => onOpenProduct(it)}
               >
-                <div className="card-thumb" />
+                <div className="card-thumb">
+                  {it.image_url && <img src={it.image_url} alt={it.name} style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '12px' }} />}
+                </div>
                 <div className="card-name">{it.name}</div>
                 {normalizedFlavors.length > 0 && (
                   <div className="card-flavors">
