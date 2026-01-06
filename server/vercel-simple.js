@@ -57,7 +57,7 @@ const app = express();
 
  const renderIndexHtml = (res) => {
   try {
-    const assetsDir = path.join(projectRoot, 'assets');
+    const assetsDir = path.join(projectRoot, 'client/dist/assets');
     const files = fs.existsSync(assetsDir) ? fs.readdirSync(assetsDir) : [];
 
     const pickLatestByMtime = (candidates) => {
