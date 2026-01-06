@@ -6,9 +6,9 @@
       "use": "@vercel/node",
       "config": {
         "includeFiles": [
-          "index.html",
-          "vite.svg",
-          "assets/**",
+          "client/dist/index.html",
+          "client/dist/vite.svg",
+          "client/dist/assets/**",
           "public/**"
         ]
       }
