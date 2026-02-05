@@ -77,7 +77,9 @@ const app = express();
       return res.sendFile(distIndexPath);
     }
 
-    const assetsDir = path.join(projectRoot, 'client/dist/assets');
+    const distAssetsDir = path.join(projectRoot, 'client/dist/assets');
+    const rootAssetsDir = path.join(projectRoot, 'assets');
+    const assetsDir = fs.existsSync(distAssetsDir) ? distAssetsDir : rootAssetsDir;
     const files = fs.existsSync(assetsDir) ? fs.readdirSync(assetsDir) : [];
 
     const pickLatestByMtime = (candidates) => {
@@ -101,8 +103,8 @@ const app = express();
     const jsCandidates = files.filter((f) => /^index-.*\.js$/.test(f));
     const cssCandidates = files.filter((f) => /^index-.*\.css$/.test(f));
 
-    const jsFile = pickLatestByMtime(jsCandidates);
-    const cssFile = pickLatestByMtime(cssCandidates);
+    const jsFile = pickLatestByMtime(jsCandidates) || jsCandidates.sort().slice(-1)[0];
+    const cssFile = pickLatestByMtime(cssCandidates) || cssCandidates.sort().slice(-1)[0];
 
     if (!jsFile || !cssFile) {
       res.setHeader('Cache-Control', 'no-store');
