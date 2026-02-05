@@ -1109,7 +1109,7 @@
             const token = localStorage.getItem('adminToken');
             
             try {
-                const response = await fetch(`${API_BASE}/admin/reviews`, {
+                const response = await fetch(`${API_BASE}/api/admin/reviews`, {
                     headers: {
                         'Authorization': `Bearer ${token}`
                     }
@@ -1151,7 +1151,6 @@
                 }
             } catch (error) {
                 console.error('Error loading reviews:', error);
-                tbody.innerHTML = '<tr><td colspan="7">Ошибка загрузки отзывов</td></tr>';
             }
         }
         
@@ -1159,7 +1158,7 @@
             const token = localStorage.getItem('adminToken');
             
             try {
-                const response = await fetch(`${API_BASE}/admin/reviews/${reviewId}/approve`, {
+                const response = await fetch(`${API_BASE}/api/admin/reviews/${reviewId}`, {
                     method: 'PUT',
                     headers: {
                         'Content-Type': 'application/json',
@@ -1186,21 +1185,23 @@
             const token = localStorage.getItem('adminToken');
             
             try {
-                const response = await fetch(`${API_BASE}/admin/reviews/${reviewId}`, {
-                    method: 'DELETE',
+                const response = await fetch(`${API_BASE}/api/admin/reviews/${reviewId}`, {
+                    method: 'PUT',
                     headers: {
+                        'Content-Type': 'application/json',
                         'Authorization': `Bearer ${token}`
-                    }
+                    },
+                    body: JSON.stringify({ is_approved: false })
                 });
                 
                 if (response.ok) {
                     loadReviews();
-                    alert('Отзыв удален!');
+                    alert('Отзыв отклонен!');
                 } else {
-                    alert('Ошибка удаления отзыва');
+                    alert('Ошибка отклонения отзыва');
                 }
             } catch (error) {
-                console.error('Error deleting review:', error);
+                console.error('Error rejecting review:', error);
                 alert('Ошибка соединения');
             }
         }

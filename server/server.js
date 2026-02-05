@@ -12,7 +12,6 @@ const ordersRouter = require('./routes/orders');
 const usersRouter = require('./routes/users');
 const statsRouter = require('./routes/stats');
 const adminRouter = require('./routes/admin');
-const apiRouter = require('./routes/api');
 
 const app = express();
 const PORT = process.env.PORT || 3000; // Railway использует порт 3000
@@ -105,7 +104,6 @@ app.use('/api/products', productsRouter);
 app.use('/api/orders', orderLimiter, ordersRouter);
 app.use('/api/users', usersRouter);
 app.use('/api/stats', statsRouter);
-app.use('/api', apiRouter);
 
 // UI redirect to React admin (HashRouter)
 app.get(['/admin', '/admin/'], (req, res) => {

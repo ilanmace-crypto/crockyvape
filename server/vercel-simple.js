@@ -165,24 +165,6 @@ app.get('/', (req, res) => {
   return renderIndexHtml(res);
 });
 
-// Admin panel - serve static HTML
-app.get('/admin', (req, res) => {
-  const adminIndexPath = path.join(projectRoot, 'admin/index.html');
-  if (fs.existsSync(adminIndexPath)) {
-    return res.sendFile(adminIndexPath);
-  }
-  res.status(404).json({ error: 'Admin panel not found' });
-});
-
-// Admin sub-routes
-app.get('/admin/*', (req, res) => {
-  const adminIndexPath = path.join(projectRoot, 'admin/index.html');
-  if (fs.existsSync(adminIndexPath)) {
-    return res.sendFile(adminIndexPath);
-  }
-  res.status(404).json({ error: 'Admin panel not found' });
-});
-
 // Health check
 app.get('/health', (req, res) => {
   res.json({
@@ -805,7 +787,6 @@ app.delete('/admin/products/:id', requireAdminAuth, (req, res) => {
 app.get('/api/admin/stats', requireAdminAuth, (req, res) => {
   (async () => {
     try {
-      // Total stats (30 days)
       const totalStats = await pool.query(`
         SELECT 
           COUNT(DISTINCT o.id) as total_orders,
@@ -816,7 +797,6 @@ app.get('/api/admin/stats', requireAdminAuth, (req, res) => {
         WHERE o.created_at >= NOW() - INTERVAL '30 days'
       `);
 
-      // By category
       const categoryStats = await pool.query(`
         SELECT 
           c.name as category_name,
@@ -831,7 +811,6 @@ app.get('/api/admin/stats', requireAdminAuth, (req, res) => {
         ORDER BY revenue DESC
       `);
 
-      // Top products
       const topProducts = await pool.query(`
         SELECT 
           p.name,
@@ -847,7 +826,6 @@ app.get('/api/admin/stats', requireAdminAuth, (req, res) => {
         LIMIT 10
       `);
 
-      // Low stock
       const lowStock = await pool.query(`
         SELECT 
           p.name,
@@ -860,7 +838,6 @@ app.get('/api/admin/stats', requireAdminAuth, (req, res) => {
         LIMIT 10
       `);
 
-      // Low stock flavors
       const lowStockFlavors = await pool.query(`
         SELECT 
           p.name as product_name,
@@ -888,7 +865,7 @@ app.get('/api/admin/stats', requireAdminAuth, (req, res) => {
 });
 
 // Load reviews for admin
-app.get('/admin/reviews', requireAdminAuth, (req, res) => {
+app.get('/api/admin/reviews', requireAdminAuth, (req, res) => {
   (async () => {
     try {
       const reviews = await pool.query(`
@@ -906,33 +883,20 @@ app.get('/admin/reviews', requireAdminAuth, (req, res) => {
   })();
 });
 
-// Approve review
-app.put('/admin/reviews/:id/approve', requireAdminAuth, (req, res) => {
+// Approve/reject review
+app.put('/api/admin/reviews/:id', requireAdminAuth, (req, res) => {
   (async () => {
     try {
       const { id } = req.params;
+      const { is_approved } = req.body;
       await pool.query(
-        'UPDATE reviews SET is_approved = true, updated_at = NOW() WHERE id = $1',
-        [id]
+        'UPDATE reviews SET is_approved = $1, updated_at = NOW() WHERE id = $2',
+        [is_approved, id]
       );
-      res.json({ message: 'Review approved' });
+      res.json({ message: 'Review updated' });
     } catch (error) {
-      console.error('Approve review error:', error);
-      res.status(500).json({ error: 'Failed to approve review' });
-    }
-  })();
-});
-
-// Delete review
-app.delete('/admin/reviews/:id', requireAdminAuth, (req, res) => {
-  (async () => {
-    try {
-      const { id } = req.params;
-      await pool.query('DELETE FROM reviews WHERE id = $1', [id]);
-      res.json({ message: 'Review deleted' });
-    } catch (error) {
-      console.error('Delete review error:', error);
-      res.status(500).json({ error: 'Failed to delete review' });
+      console.error('Update review error:', error);
+      res.status(500).json({ error: 'Failed to update review' });
     }
   })();
 });
