@@ -783,6 +783,142 @@ app.delete('/admin/products/:id', requireAdminAuth, (req, res) => {
   })();
 });
 
+// Admin stats endpoint
+app.get('/api/admin/stats', requireAdminAuth, (req, res) => {
+  (async () => {
+    try {
+      // Total stats (30 days)
+      const totalStats = await pool.query(`
+        SELECT 
+          COUNT(DISTINCT o.id) as total_orders,
+          COUNT(DISTINCT o.user_id) as total_customers,
+          COALESCE(SUM(o.total_amount), 0) as total_revenue,
+          AVG(o.total_amount) as avg_order_value
+        FROM orders o
+        WHERE o.created_at >= NOW() - INTERVAL '30 days'
+      `);
+
+      // By category
+      const categoryStats = await pool.query(`
+        SELECT 
+          c.name as category_name,
+          COUNT(DISTINCT o.id) as orders_count,
+          COALESCE(SUM(oi.quantity * oi.price), 0) as revenue
+        FROM orders o
+        JOIN order_items oi ON o.id = oi.order_id
+        JOIN products p ON oi.product_id = p.id
+        JOIN categories c ON p.category_id = c.id
+        WHERE o.created_at >= NOW() - INTERVAL '30 days'
+        GROUP BY c.id, c.name
+        ORDER BY revenue DESC
+      `);
+
+      // Top products
+      const topProducts = await pool.query(`
+        SELECT 
+          p.name,
+          COUNT(oi.id) as times_sold,
+          SUM(oi.quantity) as total_quantity,
+          COALESCE(SUM(oi.quantity * oi.price), 0) as revenue
+        FROM order_items oi
+        JOIN products p ON oi.product_id = p.id
+        JOIN orders o ON oi.order_id = o.id
+        WHERE o.created_at >= NOW() - INTERVAL '30 days'
+        GROUP BY p.id, p.name
+        ORDER BY revenue DESC
+        LIMIT 10
+      `);
+
+      // Low stock
+      const lowStock = await pool.query(`
+        SELECT 
+          p.name,
+          p.stock,
+          c.name as category_name
+        FROM products p
+        JOIN categories c ON p.category_id = c.id
+        WHERE p.stock <= 10 AND p.is_active = true
+        ORDER BY p.stock ASC
+        LIMIT 10
+      `);
+
+      // Low stock flavors
+      const lowStockFlavors = await pool.query(`
+        SELECT 
+          p.name as product_name,
+          pf.flavor_name,
+          pf.stock
+        FROM product_flavors pf
+        JOIN products p ON pf.product_id = p.id
+        WHERE pf.stock <= 5 AND p.is_active = true
+        ORDER BY pf.stock ASC
+        LIMIT 10
+      `);
+
+      res.json({
+        total: totalStats.rows[0] || {},
+        byCategory: categoryStats.rows,
+        topProducts: topProducts.rows,
+        lowStock: lowStock.rows,
+        lowStockFlavors: lowStockFlavors.rows
+      });
+    } catch (error) {
+      console.error('Admin stats error:', error);
+      res.status(500).json({ error: 'Failed to fetch stats' });
+    }
+  })();
+});
+
+// Load reviews for admin
+app.get('/admin/reviews', requireAdminAuth, (req, res) => {
+  (async () => {
+    try {
+      const reviews = await pool.query(`
+        SELECT r.*, p.name as product_name, u.telegram_username
+        FROM reviews r
+        LEFT JOIN products p ON r.product_id = p.id
+        LEFT JOIN users u ON r.user_id = u.id
+        ORDER BY r.created_at DESC
+      `);
+      res.json(reviews.rows);
+    } catch (error) {
+      console.error('Load reviews error:', error);
+      res.status(500).json({ error: 'Failed to load reviews' });
+    }
+  })();
+});
+
+// Approve review
+app.put('/admin/reviews/:id/approve', requireAdminAuth, (req, res) => {
+  (async () => {
+    try {
+      const { id } = req.params;
+      await pool.query(
+        'UPDATE reviews SET is_approved = true, updated_at = NOW() WHERE id = $1',
+        [id]
+      );
+      res.json({ message: 'Review approved' });
+    } catch (error) {
+      console.error('Approve review error:', error);
+      res.status(500).json({ error: 'Failed to approve review' });
+    }
+  })();
+});
+
+// Delete review
+app.delete('/admin/reviews/:id', requireAdminAuth, (req, res) => {
+  (async () => {
+    try {
+      const { id } = req.params;
+      await pool.query('DELETE FROM reviews WHERE id = $1', [id]);
+      res.json({ message: 'Review deleted' });
+    } catch (error) {
+      console.error('Delete review error:', error);
+      res.status(500).json({ error: 'Failed to delete review' });
+    }
+  })();
+});
+
 // Catch-all handler for React Router
 app.get(/.*/, (req, res) => {
   // Never serve index.html for missing static assets
