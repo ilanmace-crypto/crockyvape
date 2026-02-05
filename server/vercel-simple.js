@@ -165,6 +165,24 @@ app.get('/', (req, res) => {
   return renderIndexHtml(res);
 });
 
+// Admin panel - serve static HTML
+app.get('/admin', (req, res) => {
+  const adminIndexPath = path.join(projectRoot, 'admin/index.html');
+  if (fs.existsSync(adminIndexPath)) {
+    return res.sendFile(adminIndexPath);
+  }
+  res.status(404).json({ error: 'Admin panel not found' });
+});
+
+// Admin sub-routes
+app.get('/admin/*', (req, res) => {
+  const adminIndexPath = path.join(projectRoot, 'admin/index.html');
+  if (fs.existsSync(adminIndexPath)) {
+    return res.sendFile(adminIndexPath);
+  }
+  res.status(404).json({ error: 'Admin panel not found' });
+});
+
 // Health check
 app.get('/health', (req, res) => {
   res.json({
