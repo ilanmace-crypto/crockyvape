@@ -115,7 +115,7 @@ function HeaderWithCart({ cartCount, onOpenCart }) {
         <div className="header-actions">
           <a href="#/admin" className="admin-link">Админ</a>
           <button type="button" className="cart-chip" onClick={onOpenCart}>
-            Корзина {cartCount > 0 && <span className="cart-count">{cartCount}</span>}
+            Корзина {cartCount > 0 && <span className="cart-chip-badge">{cartCount}</span>}
           </button>
         </div>
       </div>
@@ -205,6 +205,9 @@ function ProductGrid({ title, products, onOpenProduct, query }) {
                       </div>
                     )}
                   </div>
+                )}
+                {normalizedFlavors.length === 0 && Number(it.stock) > 0 && (
+                  <div className="card-stock">Остаток: {Number(it.stock)} шт</div>
                 )}
                 <div className="card-row">
                   <div className="card-price">{it.price} BYN</div>
@@ -322,6 +325,7 @@ function CartDrawer({ open, items, onClose, onDec, onInc, onRemove, onClear }) {
     () => items.reduce((sum, it) => sum + it.price * it.qty, 0),
     [items]
   )
+  const totalQty = useMemo(() => items.reduce((sum, it) => sum + it.qty, 0), [items])
 
   return (
     <div className={`cart-drawer-overlay ${open ? 'active' : ''}`} aria-hidden={!open}>
@@ -329,8 +333,8 @@ function CartDrawer({ open, items, onClose, onDec, onInc, onRemove, onClear }) {
         <div className="cart-drawer-header">
           <div className="cart-drawer-title">
             <span>🛒 Корзина</span>
-            {items.length > 0 && (
-              <span className="cart-count">{items.length} {items.length === 1 ? 'товар' : items.length <= 4 ? 'товара' : 'товаров'}</span>
+            {totalQty > 0 && (
+              <span className="cart-count">{totalQty} {totalQty === 1 ? 'товар' : totalQty <= 4 ? 'товара' : 'товаров'}</span>
             )}
           </div>
           <button type="button" className="icon-btn" onClick={onClose} aria-label="Закрыть">

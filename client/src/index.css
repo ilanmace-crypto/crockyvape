@@ -169,6 +169,12 @@ button {
   font-size: 12px;
 }
 
+.card-stock {
+  margin-top: 6px;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.72);
+}
+
 /* Modal Overlay */
 .modal-overlay {
   position: fixed;
