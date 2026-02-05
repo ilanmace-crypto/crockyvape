@@ -847,6 +847,7 @@ app.delete('/admin/products/:id', requireAdminAuth, (req, res) => {
 app.get('/api/admin/stats', requireAdminAuth, (req, res) => {
   (async () => {
     try {
+      await ensureSchemaReady();
       const totalStats = await pool.query(`
         SELECT 
           COUNT(DISTINCT o.id) as total_orders,
@@ -928,6 +929,7 @@ app.get('/api/admin/stats', requireAdminAuth, (req, res) => {
 app.get('/api/admin/reviews', requireAdminAuth, (req, res) => {
   (async () => {
     try {
+      await ensureSchemaReady();
       const reviews = await pool.query(`
         SELECT r.*, p.name as product_name, u.telegram_username
         FROM reviews r
@@ -947,6 +949,7 @@ app.get('/api/admin/reviews', requireAdminAuth, (req, res) => {
 app.put('/api/admin/reviews/:id', requireAdminAuth, (req, res) => {
   (async () => {
     try {
+      await ensureSchemaReady();
       const { id } = req.params;
       const { is_approved } = req.body;
       await pool.query(

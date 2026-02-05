@@ -2,11 +2,18 @@ import React, { useState, useEffect } from 'react';
 import './AdminPanel.css';
 
 const AdminPanel = ({ onLogout }) => {
+  const [activeTab, setActiveTab] = useState('dashboard');
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [showAddProduct, setShowAddProduct] = useState(false);
   const [editingProduct, setEditingProduct] = useState(null);
+
+  const [stats, setStats] = useState(null);
+  const [statsLoading, setStatsLoading] = useState(false);
+
+  const [reviews, setReviews] = useState([]);
+  const [reviewsLoading, setReviewsLoading] = useState(false);
 
   const normalizeProduct = (p) => {
     const category = Number(p?.category_id) === 1
@@ -36,16 +43,29 @@ const AdminPanel = ({ onLogout }) => {
 
   // Загрузка данных с API
   useEffect(() => {
-    loadData();
+    loadProducts();
+    loadStats();
+    loadReviews();
   }, []);
 
-  const loadData = async () => {
+  const getTokenOrLogout = () => {
+    const token = localStorage.getItem('adminToken');
+    if (!token) {
+      onLogout();
+      throw new Error('No authentication token');
+    }
+    return token;
+  };
+
+  const handleUnauthorized = () => {
+    localStorage.removeItem('adminToken');
+    onLogout();
+  };
+
+  const loadProducts = async () => {
     setLoading(true);
     try {
-      const token = localStorage.getItem('adminToken');
-      if (!token) {
-        throw new Error('No authentication token');
-      }
+      const token = getTokenOrLogout();
 
       // Загрузка только товаров
       const productsResponse = await fetch('/admin/products', {
@@ -57,9 +77,11 @@ const AdminPanel = ({ onLogout }) => {
         const normalizedProducts = Array.isArray(productsData) ? productsData.map(normalizeProduct) : [];
         setProducts(normalizedProducts);
       } else if (productsResponse.status === 401) {
-        localStorage.removeItem('adminToken');
-        onLogout();
+        handleUnauthorized();
         return;
+      } else {
+        const errBody = await productsResponse.json().catch(() => null);
+        throw new Error(errBody?.error || 'Failed to load products');
       }
       
     } catch (err) {
@@ -69,12 +91,85 @@ const AdminPanel = ({ onLogout }) => {
     }
   };
 
+  const loadStats = async () => {
+    setStatsLoading(true);
+    try {
+      const token = getTokenOrLogout();
+      const response = await fetch('/api/admin/stats', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setStats(data);
+      } else if (response.status === 401) {
+        handleUnauthorized();
+      } else {
+        const errBody = await response.json().catch(() => null);
+        throw new Error(errBody?.error || 'Failed to load stats');
+      }
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setStatsLoading(false);
+    }
+  };
+
+  const loadReviews = async () => {
+    setReviewsLoading(true);
+    try {
+      const token = getTokenOrLogout();
+      const response = await fetch('/api/admin/reviews', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setReviews(Array.isArray(data) ? data : []);
+      } else if (response.status === 401) {
+        handleUnauthorized();
+      } else {
+        const errBody = await response.json().catch(() => null);
+        throw new Error(errBody?.error || 'Failed to load reviews');
+      }
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setReviewsLoading(false);
+    }
+  };
+
+  const updateReviewApproval = async (reviewId, isApproved) => {
+    try {
+      const token = getTokenOrLogout();
+      const response = await fetch(`/api/admin/reviews/${reviewId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({ is_approved: isApproved }),
+      });
+
+      if (response.ok) {
+        await loadReviews();
+        await loadStats();
+        return;
+      }
+      if (response.status === 401) {
+        handleUnauthorized();
+        return;
+      }
+      const errBody = await response.json().catch(() => null);
+      throw new Error(errBody?.error || 'Failed to update review');
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
   const handleAddProduct = async (product) => {
     try {
-      const token = localStorage.getItem('adminToken');
-      if (!token) {
-        throw new Error('No authentication token');
-      }
+      const token = getTokenOrLogout();
       const response = await fetch('/admin/products', {
         method: 'POST',
         headers: {
@@ -87,11 +182,11 @@ const AdminPanel = ({ onLogout }) => {
       if (response.ok) {
         const newProduct = await response.json();
         setProducts((prev) => [...prev, normalizeProduct(newProduct)]);
-        await loadData();
+        await loadProducts();
+        await loadStats();
         setShowAddProduct(false);
       } else if (response.status === 401) {
-        localStorage.removeItem('adminToken');
-        onLogout();
+        handleUnauthorized();
       } else {
         const errBody = await response.json().catch(() => null);
         throw new Error(errBody?.error || 'Failed to add product');
@@ -104,7 +199,7 @@ const AdminPanel = ({ onLogout }) => {
 
   const handleEditProduct = async (product) => {
     try {
-      const token = localStorage.getItem('adminToken');
+      const token = getTokenOrLogout();
       const response = await fetch(`/admin/products/${product.id}`, {
         method: 'PUT',
         headers: {
@@ -119,9 +214,9 @@ const AdminPanel = ({ onLogout }) => {
         const normalized = normalizeProduct(updatedProduct);
         setProducts(products.map(p => p.id === product.id ? normalized : p));
         setEditingProduct(null);
+        await loadStats();
       } else if (response.status === 401) {
-        localStorage.removeItem('adminToken');
-        onLogout();
+        handleUnauthorized();
       } else {
         const errBody = await response.json().catch(() => null);
         throw new Error(errBody?.error || 'Failed to update product');
@@ -135,7 +230,7 @@ const AdminPanel = ({ onLogout }) => {
     if (!confirm('Удалить товар?')) return;
     
     try {
-      const token = localStorage.getItem('adminToken');
+      const token = getTokenOrLogout();
       const response = await fetch(`/admin/products/${id}`, {
         method: 'DELETE',
         headers: {
@@ -145,9 +240,9 @@ const AdminPanel = ({ onLogout }) => {
       
       if (response.ok) {
         setProducts(products.filter(p => p.id !== id));
+        await loadStats();
       } else if (response.status === 401) {
-        localStorage.removeItem('adminToken');
-        onLogout();
+        handleUnauthorized();
       } else {
         const errBody = await response.json().catch(() => null);
         throw new Error(errBody?.error || 'Failed to delete product');
@@ -157,28 +252,92 @@ const AdminPanel = ({ onLogout }) => {
     }
   };
 
-  const handleUpdateOrderStatus = async (orderId, status) => {
-    try {
-      const token = localStorage.getItem('adminToken');
-      const response = await fetch(`/admin/orders/${orderId}/status`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({ status }),
-      });
-      
-      if (response.ok) {
-        const updatedOrder = await response.json();
-        setOrders(orders.map(o => o.id === orderId ? updatedOrder : o));
-      } else {
-        throw new Error('Failed to update order status');
-      }
-    } catch (err) {
-      setError(err.message);
-    }
+  const formatMoney = (value) => {
+    const n = Number(value || 0);
+    if (!Number.isFinite(n)) return '0.00';
+    return n.toFixed(2);
   };
+
+  const renderDashboard = () => (
+    <div className="admin-section">
+      <div className="section-header">
+        <h3>Статистика (30 дней)</h3>
+        <button className="admin-button" onClick={() => { loadStats(); loadReviews(); loadProducts(); }}>
+          Обновить
+        </button>
+      </div>
+
+      {statsLoading ? (
+        <div className="loading">Загрузка статистики...</div>
+      ) : stats ? (
+        <>
+          <div className="stats-grid">
+            <div className="stat-card">
+              <h4>Заказов</h4>
+              <p className="stat-number">{stats?.total?.total_orders || 0}</p>
+            </div>
+            <div className="stat-card">
+              <h4>Клиентов</h4>
+              <p className="stat-number">{stats?.total?.total_customers || 0}</p>
+            </div>
+            <div className="stat-card">
+              <h4>Выручка</h4>
+              <p className="stat-number">{formatMoney(stats?.total?.total_revenue)} BYN</p>
+            </div>
+            <div className="stat-card">
+              <h4>Средний чек</h4>
+              <p className="stat-number">{formatMoney(stats?.total?.avg_order_value)} BYN</p>
+            </div>
+          </div>
+
+          <div className="top-products">
+            <h4>⚠️ Низкие остатки</h4>
+            {Array.isArray(stats?.lowStock) && stats.lowStock.length > 0 ? (
+              <ul>
+                {stats.lowStock.map((it, idx) => (
+                  <li key={`${it.name}-${idx}`}>
+                    {it.name} — {it.stock} шт. ({it.category_name})
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <div style={{ color: '#ccc' }}>Все товары в норме</div>
+            )}
+
+            {Array.isArray(stats?.lowStockFlavors) && stats.lowStockFlavors.length > 0 && (
+              <>
+                <h4 style={{ marginTop: 16 }}>⚠️ Низкие остатки по вкусам</h4>
+                <ul>
+                  {stats.lowStockFlavors.map((it, idx) => (
+                    <li key={`${it.product_name}-${it.flavor_name}-${idx}`}>
+                      {it.product_name} / {it.flavor_name} — {it.stock} шт.
+                    </li>
+                  ))}
+                </ul>
+              </>
+            )}
+          </div>
+
+          <div className="top-products" style={{ marginTop: 20 }}>
+            <h4>🔥 Топ товары</h4>
+            {Array.isArray(stats?.topProducts) && stats.topProducts.length > 0 ? (
+              <ul>
+                {stats.topProducts.map((p, idx) => (
+                  <li key={`${p.name}-${idx}`}>
+                    {p.name} — {p.total_quantity} шт · {formatMoney(p.revenue)} BYN
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <div style={{ color: '#ccc' }}>Пока нет данных</div>
+            )}
+          </div>
+        </>
+      ) : (
+        <div className="loading">Нет данных статистики</div>
+      )}
+    </div>
+  );
 
   const renderProducts = () => (
     <div className="admin-section">
@@ -232,6 +391,56 @@ const AdminPanel = ({ onLogout }) => {
     </div>
   );
 
+  const renderReviews = () => (
+    <div className="admin-section">
+      <div className="section-header">
+        <h3>Отзывы (модерация)</h3>
+        <button className="admin-button" onClick={loadReviews}>Обновить</button>
+      </div>
+
+      {reviewsLoading ? (
+        <div className="loading">Загрузка отзывов...</div>
+      ) : error ? (
+        <div className="error">{error}</div>
+      ) : (
+        <div style={{ display: 'grid', gap: 12 }}>
+          {reviews.length === 0 ? (
+            <div className="loading">Отзывов пока нет</div>
+          ) : (
+            reviews.map((r) => (
+              <div key={r.id} className="product-card">
+                <div className="product-info">
+                  <h4>{r.telegram_username || 'Аноним'} {r.is_approved ? '✅' : '⏳'}</h4>
+                  <p className="price">{'⭐'.repeat(Number(r.rating || 0))}{'☆'.repeat(5 - Number(r.rating || 0))}</p>
+                  <p style={{ color: '#ccc' }}>{r.review_text}</p>
+                  <p style={{ color: '#888', fontSize: 12 }}>{r.created_at ? new Date(r.created_at).toLocaleString('ru-RU') : ''}</p>
+                </div>
+                <div className="product-actions">
+                  {!r.is_approved && (
+                    <button
+                      onClick={() => updateReviewApproval(r.id, true)}
+                      className="btn-edit"
+                    >
+                      Одобрить
+                    </button>
+                  )}
+                  {r.is_approved && (
+                    <button
+                      onClick={() => updateReviewApproval(r.id, false)}
+                      className="btn-delete"
+                    >
+                      Скрыть
+                    </button>
+                  )}
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+      )}
+    </div>
+  );
+
 
 
 
@@ -243,9 +452,32 @@ const AdminPanel = ({ onLogout }) => {
           Выйти
         </button>
       </div>
+
+      <div className="admin-tabs">
+        <button
+          className={`admin-tab ${activeTab === 'dashboard' ? 'active' : ''}`}
+          onClick={() => setActiveTab('dashboard')}
+        >
+          Главная
+        </button>
+        <button
+          className={`admin-tab ${activeTab === 'products' ? 'active' : ''}`}
+          onClick={() => setActiveTab('products')}
+        >
+          Товары
+        </button>
+        <button
+          className={`admin-tab ${activeTab === 'reviews' ? 'active' : ''}`}
+          onClick={() => setActiveTab('reviews')}
+        >
+          Отзывы
+        </button>
+      </div>
       
       <div className="admin-content">
-        {renderProducts()}
+        {activeTab === 'dashboard' && renderDashboard()}
+        {activeTab === 'products' && renderProducts()}
+        {activeTab === 'reviews' && renderReviews()}
       </div>
     </div>
   );
