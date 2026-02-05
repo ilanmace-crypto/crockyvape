@@ -434,11 +434,8 @@ function ReviewsPlaceholder() {
   useEffect(() => {
     const loadReviews = async () => {
       try {
-        const response = await fetch(`${import.meta.env.VITE_API_URL}/reviews`)
-        if (response.ok) {
-          const data = await response.json()
-          setReviews(data)
-        }
+        const data = await ApiService.getReviews()
+        setReviews(Array.isArray(data) ? data : [])
       } catch (error) {
         console.error('Error loading reviews:', error)
       } finally {
@@ -460,30 +457,19 @@ function ReviewsPlaceholder() {
 
     setSubmitting(true)
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/reviews`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          telegram_username: reviewForm.username,
-          review_text: reviewForm.text,
-          rating: reviewForm.rating,
-          user_id: 1, // Временное решение, лучше получать из auth
-          product_id: null // Отзыв о магазине в целом
-        })
+      const created = await ApiService.createReview({
+        telegram_username: reviewForm.username,
+        review_text: reviewForm.text,
+        rating: reviewForm.rating,
       })
 
-      if (response.ok) {
+      if (created) {
         alert('Спасибо за отзыв! 🎉 Он будет опубликован после модерации.')
         setReviewForm({ username: '', text: '', rating: 5 })
         
         // Перезагружаем отзывы
-        const reviewsResponse = await fetch(`${import.meta.env.VITE_API_URL}/reviews`)
-        if (reviewsResponse.ok) {
-          const data = await reviewsResponse.json()
-          setReviews(data)
-        }
+        const data = await ApiService.getReviews()
+        setReviews(Array.isArray(data) ? data : [])
       } else {
         throw new Error('Failed to submit review')
       }

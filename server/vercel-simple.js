@@ -26,6 +26,20 @@ const app = express();
       )
     `
     );
+
+    await pool.query(
+      `
+      CREATE TABLE IF NOT EXISTS reviews (
+        id BIGSERIAL PRIMARY KEY,
+        telegram_username TEXT,
+        rating INT NOT NULL DEFAULT 5,
+        review_text TEXT,
+        is_approved BOOLEAN NOT NULL DEFAULT FALSE,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      )
+    `
+    );
   })();
   return schemaReadyPromise;
  };
@@ -494,6 +508,52 @@ const createOrder = async (req, res) => {
 
 app.post('/api/orders', createOrder);
 app.post('/orders', createOrder);
+
+app.get('/api/reviews', (req, res) => {
+  (async () => {
+    try {
+      await ensureSchemaReady();
+      const result = await pool.query(
+        `
+        SELECT id, telegram_username, rating, review_text, is_approved, created_at
+        FROM reviews
+        WHERE is_approved = true
+        ORDER BY created_at DESC
+        LIMIT 50
+      `
+      );
+      res.json(result.rows);
+    } catch (error) {
+      console.error('Fetch reviews error:', error);
+      res.status(500).json({ error: 'Failed to fetch reviews' });
+    }
+  })();
+});
+
+app.post('/api/reviews', (req, res) => {
+  (async () => {
+    try {
+      await ensureSchemaReady();
+      const { telegram_username, rating, review_text } = req.body || {};
+      const r = Number(rating || 5);
+      const safeRating = Number.isFinite(r) ? Math.max(1, Math.min(5, r)) : 5;
+
+      const result = await pool.query(
+        `
+        INSERT INTO reviews (telegram_username, rating, review_text)
+        VALUES ($1, $2, $3)
+        RETURNING id, telegram_username, rating, review_text, is_approved, created_at
+      `,
+        [telegram_username || null, safeRating, review_text || null]
+      );
+
+      res.status(201).json(result.rows[0]);
+    } catch (error) {
+      console.error('Create review error:', error);
+      res.status(500).json({ error: 'Failed to create review' });
+    }
+  })();
+});
 
 // Mock admin login
 app.post('/admin/login', (req, res) => {

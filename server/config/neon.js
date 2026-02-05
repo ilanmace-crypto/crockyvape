@@ -1,21 +1,33 @@
-const { Pool } = require('pg');
 require('dotenv').config();
 
-let pool;
-
-if (!process.env.DATABASE_URL) {
-  console.warn('DATABASE_URL is not set, using mock mode');
-  // Mock pool for development without database
-  pool = {
+const createMockPool = (reason) => {
+  console.warn(reason || 'Using mock mode');
+  const mock = {
     query: async (text, params) => {
       console.log('Mock query:', text, params);
       return { rows: [] };
     },
     connect: async () => ({
-      query: pool.query,
-      release: () => {}
-    })
+      query: mock.query,
+      release: () => {},
+    }),
   };
+  return mock;
+};
+
+let Pool;
+try {
+  // pg may be missing in some serverless builds; do not crash at import time
+  ({ Pool } = require('pg'));
+} catch (e) {
+  module.exports = createMockPool(`pg module is not available (${e?.message || e})`);
+  return;
+}
+
+let pool;
+
+if (!process.env.DATABASE_URL) {
+  pool = createMockPool('DATABASE_URL is not set, using mock mode');
 } else {
   // Neon PostgreSQL configuration
   pool = new Pool({
@@ -27,7 +39,6 @@ if (!process.env.DATABASE_URL) {
     keepAlive: true,
   });
 
-  // Test connection
   pool.on('connect', () => {
     console.log('Connected to Neon PostgreSQL database');
   });
