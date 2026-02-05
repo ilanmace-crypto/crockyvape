@@ -237,6 +237,23 @@ app.get('/api/debug/assets', (req, res) => {
   }
 });
 
+app.get('/api/debug/db', async (req, res) => {
+  try {
+    const ping = await pool.query('SELECT 1 as ok');
+    let reviewsInfo = null;
+    try {
+      await ensureSchemaReady();
+      const count = await pool.query('SELECT COUNT(*)::int as count FROM reviews');
+      reviewsInfo = { ok: true, count: count.rows?.[0]?.count ?? null };
+    } catch (e) {
+      reviewsInfo = { ok: false, error: e?.message || String(e) };
+    }
+    res.json({ ok: true, ping: ping.rows?.[0] || null, reviews: reviewsInfo });
+  } catch (e) {
+    res.status(500).json({ ok: false, error: e?.message || String(e) });
+  }
+});
+
 // Debug endpoint
 app.get('/api/debug', (req, res) => {
   res.json({
@@ -574,7 +591,7 @@ app.get('/api/reviews', (req, res) => {
       res.json(result.rows);
     } catch (error) {
       console.error('Fetch reviews error:', error);
-      res.status(500).json({ error: 'Failed to fetch reviews' });
+      res.status(500).json({ error: 'Failed to fetch reviews', details: error?.message || String(error) });
     }
   })();
 });
@@ -599,7 +616,7 @@ app.post('/api/reviews', (req, res) => {
       res.status(201).json(result.rows[0]);
     } catch (error) {
       console.error('Create review error:', error);
-      res.status(500).json({ error: 'Failed to create review' });
+      res.status(500).json({ error: 'Failed to create review', details: error?.message || String(error) });
     }
   })();
 });
