@@ -71,6 +71,12 @@ const app = express();
 
  const renderIndexHtml = (res) => {
   try {
+    const distIndexPath = path.join(projectRoot, 'client/dist/index.html');
+    if (fs.existsSync(distIndexPath)) {
+      res.setHeader('Cache-Control', 'no-store');
+      return res.sendFile(distIndexPath);
+    }
+
     const assetsDir = path.join(projectRoot, 'client/dist/assets');
     const files = fs.existsSync(assetsDir) ? fs.readdirSync(assetsDir) : [];
 
@@ -100,7 +106,7 @@ const app = express();
 
     if (!jsFile || !cssFile) {
       res.setHeader('Cache-Control', 'no-store');
-      return res.sendFile(path.join(projectRoot, 'index.html'));
+      return res.status(500).send('Client build is missing');
     }
 
     const v = Date.now();
@@ -124,7 +130,11 @@ const app = express();
     );
   } catch (error) {
     res.setHeader('Cache-Control', 'no-store');
-    return res.sendFile(path.join(projectRoot, 'index.html'));
+    const distIndexPath = path.join(projectRoot, 'client/dist/index.html');
+    if (fs.existsSync(distIndexPath)) {
+      return res.sendFile(distIndexPath);
+    }
+    return res.status(500).send('Client build is missing');
   }
  };
 
