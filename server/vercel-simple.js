@@ -579,15 +579,19 @@ app.get('/api/reviews', (req, res) => {
   (async () => {
     try {
       await ensureSchemaReady();
-      const result = await pool.query(
-        `
-        SELECT id, telegram_username, rating, review_text, is_approved, created_at
+      const result = await pool.query(`
+        SELECT
+          id,
+          COALESCE(telegram_username, '') as telegram_username,
+          COALESCE(rating, 5) as rating,
+          COALESCE(review_text, '') as review_text,
+          COALESCE(is_approved, false) as is_approved,
+          created_at
         FROM reviews
         WHERE is_approved = true
         ORDER BY created_at DESC
         LIMIT 50
-      `
-      );
+      `);
       res.json(result.rows);
     } catch (error) {
       console.error('Fetch reviews error:', error);
@@ -600,20 +604,44 @@ app.post('/api/reviews', (req, res) => {
   (async () => {
     try {
       await ensureSchemaReady();
-      const { telegram_username, rating, review_text } = req.body || {};
+      const { telegram_username, rating, review_text, product_id } = req.body || {};
       const r = Number(rating || 5);
       const safeRating = Number.isFinite(r) ? Math.max(1, Math.min(5, r)) : 5;
 
-      const result = await pool.query(
+      // Some existing schemas require user_id NOT NULL. We create/reuse a system user.
+      const tgId = 'site-review-user';
+      let userId;
+      try {
+        const existing = await pool.query('SELECT id FROM users WHERE telegram_id = $1 LIMIT 1', [tgId]);
+        if (existing.rows.length > 0) {
+          userId = existing.rows[0].id;
+        } else {
+          const createdUser = await pool.query(
+            `INSERT INTO users (telegram_id, telegram_username)
+             VALUES ($1, $2)
+             RETURNING id`,
+            [tgId, telegram_username || null]
+          );
+          userId = createdUser.rows[0].id;
+        }
+      } catch (e) {
+        console.error('Failed to ensure system user for reviews:', e);
+        return res.status(500).json({
+          error: 'Failed to create review',
+          details: e?.message || String(e),
+        });
+      }
+
+      const insert = await pool.query(
         `
-        INSERT INTO reviews (telegram_username, rating, review_text)
-        VALUES ($1, $2, $3)
+        INSERT INTO reviews (user_id, product_id, rating, review_text, telegram_username)
+        VALUES ($1, $2, $3, $4, $5)
         RETURNING id, telegram_username, rating, review_text, is_approved, created_at
       `,
-        [telegram_username || null, safeRating, review_text || null]
+        [userId, product_id || null, safeRating, review_text || null, telegram_username || null]
       );
 
-      res.status(201).json(result.rows[0]);
+      res.status(201).json(insert.rows[0]);
     } catch (error) {
       console.error('Create review error:', error);
       res.status(500).json({ error: 'Failed to create review', details: error?.message || String(error) });
