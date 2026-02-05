@@ -92,6 +92,42 @@ router.post('/orders', async (req, res) => {
     
     const { user_id, items, delivery_address, phone, notes } = req.body;
     
+    // Проверяем наличие достаточного количества товаров
+    for (let item of items) {
+      if (item.flavor_name) {
+        const [flavorStock] = await connection.execute(
+          'SELECT stock FROM product_flavors WHERE product_id = ? AND flavor_name = ?',
+          [item.product_id, item.flavor_name]
+        );
+        
+        if (flavorStock.length === 0 || flavorStock[0].stock < item.quantity) {
+          await connection.rollback();
+          return res.status(400).json({ 
+            error: 'Insufficient stock',
+            product_id: item.product_id,
+            flavor_name: item.flavor_name,
+            requested: item.quantity,
+            available: flavorStock.length > 0 ? flavorStock[0].stock : 0
+          });
+        }
+      } else {
+        const [productStock] = await connection.execute(
+          'SELECT stock FROM products WHERE id = ?',
+          [item.product_id]
+        );
+        
+        if (productStock.length === 0 || productStock[0].stock < item.quantity) {
+          await connection.rollback();
+          return res.status(400).json({ 
+            error: 'Insufficient stock',
+            product_id: item.product_id,
+            requested: item.quantity,
+            available: productStock.length > 0 ? productStock[0].stock : 0
+          });
+        }
+      }
+    }
+    
     // Рассчитываем общую сумму
     let total_amount = 0;
     for (let item of items) {
@@ -113,19 +149,36 @@ router.post('/orders', async (req, res) => {
         VALUES (?, ?, ?, ?, ?)
       `, [order_id, item.product_id, item.flavor_name, item.quantity, item.price]);
       
-      // Уменьшаем остатки
+      // Уменьшаем остатки с проверкой
       if (item.flavor_name) {
-        await connection.execute(`
+        const [result] = await connection.execute(`
           UPDATE product_flavors 
           SET stock = stock - ? 
-          WHERE product_id = ? AND flavor_name = ?
-        `, [item.quantity, item.product_id, item.flavor_name]);
+          WHERE product_id = ? AND flavor_name = ? AND stock >= ?
+        `, [item.quantity, item.product_id, item.flavor_name, item.quantity]);
+        
+        if (result.affectedRows === 0) {
+          await connection.rollback();
+          return res.status(400).json({ 
+            error: 'Stock update failed - insufficient stock',
+            product_id: item.product_id,
+            flavor_name: item.flavor_name
+          });
+        }
       } else {
-        await connection.execute(`
+        const [result] = await connection.execute(`
           UPDATE products 
           SET stock = stock - ? 
-          WHERE id = ?
-        `, [item.quantity, item.product_id]);
+          WHERE id = ? AND stock >= ?
+        `, [item.quantity, item.product_id, item.quantity]);
+        
+        if (result.affectedRows === 0) {
+          await connection.rollback();
+          return res.status(400).json({ 
+            error: 'Stock update failed - insufficient stock',
+            product_id: item.product_id
+          });
+        }
       }
     }
     
@@ -222,6 +275,129 @@ router.get('/orders/user/:telegram_id', async (req, res) => {
     res.json(orders);
   } catch (error) {
     console.error('Error fetching user orders:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Получение статистики продаж для админ панели
+router.get('/admin/stats', async (req, res) => {
+  try {
+    // Общая статистика
+    const [totalStats] = await pool.execute(`
+      SELECT 
+        COUNT(DISTINCT o.id) as total_orders,
+        COUNT(DISTINCT o.user_id) as total_customers,
+        SUM(o.total_amount) as total_revenue,
+        AVG(o.total_amount) as avg_order_value
+      FROM orders o
+      WHERE o.created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)
+    `);
+    
+    // Продажи по категориям
+    const [categoryStats] = await pool.execute(`
+      SELECT 
+        c.name as category_name,
+        COUNT(DISTINCT o.id) as orders_count,
+        SUM(oi.quantity * oi.price) as revenue
+      FROM orders o
+      JOIN order_items oi ON o.id = oi.order_id
+      JOIN products p ON oi.product_id = p.id
+      JOIN categories c ON p.category_id = c.id
+      WHERE o.created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)
+      GROUP BY c.id, c.name
+      ORDER BY revenue DESC
+    `);
+    
+    // Топ товары
+    const [topProducts] = await pool.execute(`
+      SELECT 
+        p.name,
+        COUNT(oi.id) as times_sold,
+        SUM(oi.quantity) as total_quantity,
+        SUM(oi.quantity * oi.price) as revenue
+      FROM order_items oi
+      JOIN products p ON oi.product_id = p.id
+      JOIN orders o ON oi.order_id = o.id
+      WHERE o.created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)
+      GROUP BY p.id, p.name
+      ORDER BY revenue DESC
+      LIMIT 10
+    `);
+    
+    // Низкие остатки
+    const [lowStock] = await pool.execute(`
+      SELECT 
+        p.name,
+        p.stock,
+        c.name as category_name
+      FROM products p
+      JOIN categories c ON p.category_id = c.id
+      WHERE p.stock <= 10 AND p.is_active = true
+      ORDER BY p.stock ASC
+      LIMIT 10
+    `);
+    
+    // Низкие остатки вкусов
+    const [lowStockFlavors] = await pool.execute(`
+      SELECT 
+        p.name as product_name,
+        pf.flavor_name,
+        pf.stock
+      FROM product_flavors pf
+      JOIN products p ON pf.product_id = p.id
+      WHERE pf.stock <= 5 AND p.is_active = true
+      ORDER BY pf.stock ASC
+      LIMIT 10
+    `);
+    
+    res.json({
+      total: totalStats[0] || {},
+      byCategory: categoryStats,
+      topProducts,
+      lowStock,
+      lowStockFlavors
+    });
+  } catch (error) {
+    console.error('Error fetching admin stats:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Получение всех отзывов для админ панели
+router.get('/admin/reviews', async (req, res) => {
+  try {
+    const [reviews] = await pool.execute(`
+      SELECT r.*, p.name as product_name, u.telegram_username
+      FROM reviews r
+      LEFT JOIN products p ON r.product_id = p.id
+      LEFT JOIN users u ON r.user_id = u.id
+      ORDER BY r.created_at DESC
+    `);
+    res.json(reviews);
+  } catch (error) {
+    console.error('Error fetching reviews:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Одобрение/отклонение отзыва
+router.put('/admin/reviews/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { is_approved } = req.body;
+    
+    const [result] = await pool.execute(
+      'UPDATE reviews SET is_approved = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
+      [is_approved, id]
+    );
+    
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ error: 'Review not found' });
+    }
+    
+    res.json({ message: 'Review updated successfully' });
+  } catch (error) {
+    console.error('Error updating review:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });

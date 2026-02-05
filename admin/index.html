@@ -98,6 +98,353 @@
             transform: translateY(0);
         }
         
+        /* Dashboard Styles */
+        .dashboard {
+            display: none;
+            min-height: 100vh;
+            background: #f8f9fa;
+        }
+        
+        .header {
+            background: white;
+            padding: 20px;
+            border-bottom: 1px solid #e1e5e9;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .header-title {
+            font-size: 24px;
+            font-weight: 700;
+            color: #333;
+        }
+        
+        .logout-btn {
+            background: #dc3545;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+        
+        .content {
+            padding: 20px;
+        }
+        
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 30px;
+            border-bottom: 2px solid #e1e5e9;
+        }
+        
+        .tab {
+            padding: 15px 20px;
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-weight: 600;
+            color: #666;
+            border-bottom: 3px solid transparent;
+            transition: all 0.3s;
+        }
+        
+        .tab.active {
+            color: #667eea;
+            border-bottom-color: #667eea;
+        }
+        
+        .tab-content {
+            display: none;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .stat-card {
+            background: white;
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+        
+        .stat-title {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 10px;
+            font-weight: 600;
+        }
+        
+        .stat-value {
+            font-size: 28px;
+            font-weight: 700;
+            color: #333;
+        }
+        
+        .section {
+            background: white;
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        
+        .section-title {
+            font-size: 18px;
+            font-weight: 700;
+            color: #333;
+            margin-bottom: 20px;
+        }
+        
+        .table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        .table th,
+        .table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #e1e5e9;
+        }
+        
+        .table th {
+            background: #f8f9fa;
+            font-weight: 600;
+            color: #333;
+        }
+        
+        .status-badge {
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        
+        .status-pending {
+            background: #fff3cd;
+            color: #856404;
+        }
+        
+        .status-confirmed {
+            background: #d1ecf1;
+            color: #0c5460;
+        }
+        
+        .status-preparing {
+            background: #e2e3e5;
+            color: #383d41;
+        }
+        
+        .status-ready {
+            background: #d4edda;
+            color: #155724;
+        }
+        
+        .status-completed {
+            background: #d1f2eb;
+            color: #0f5132;
+        }
+        
+        .status-cancelled {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        
+        .status-approved {
+            background: #d1f2eb;
+            color: #0f5132;
+        }
+        
+        .btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 14px;
+            margin-right: 5px;
+        }
+        
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+        
+        .btn-success {
+            background: #28a745;
+            color: white;
+        }
+        
+        .btn-danger {
+            background: #dc3545;
+            color: white;
+        }
+        
+        .btn-sm {
+            padding: 4px 8px;
+            font-size: 12px;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #333;
+        }
+        
+        .form-input {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #e1e5e9;
+            border-radius: 10px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+        
+        .form-input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        /* Detailed Stats Styles */
+        .detailed-stats {
+            margin-top: 30px;
+        }
+        
+        .category-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+        }
+        
+        .category-stat-item {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+        }
+        
+        .category-name {
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+        
+        .category-revenue {
+            font-size: 18px;
+            font-weight: 700;
+            color: #28a745;
+            margin-bottom: 3px;
+        }
+        
+        .category-orders {
+            font-size: 12px;
+            color: #666;
+        }
+        
+        .low-stock-alerts {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 10px;
+            padding: 15px;
+        }
+        
+        .stock-alert-section {
+            margin-bottom: 15px;
+        }
+        
+        .stock-alert-section h4 {
+            margin-bottom: 10px;
+            color: #856404;
+        }
+        
+        .stock-alert-item {
+            padding: 8px 12px;
+            margin-bottom: 5px;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+        
+        .stock-alert-item.danger {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        
+        .stock-alert-item.warning {
+            background: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeaa7;
+        }
+        
+        .no-alerts {
+            text-align: center;
+            padding: 20px;
+            color: #28a745;
+            font-weight: 600;
+        }
+        
+        .top-products {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        
+        .top-product-item {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 10px;
+        }
+        
+        .product-rank {
+            font-size: 24px;
+            font-weight: 700;
+            color: #667eea;
+            min-width: 40px;
+        }
+        
+        .product-info {
+            flex: 1;
+        }
+        
+        .product-name {
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+        
+        .product-stats {
+            font-size: 14px;
+            color: #666;
+        }
+        
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border: 1px solid #f5c6cb;
+        }
+        
         .error {
             background: #fee;
             color: #c33;
@@ -510,7 +857,7 @@
             const token = localStorage.getItem('adminToken');
             
             try {
-                const response = await fetch(`${API_BASE}/admin/stats`, {
+                const response = await fetch(`${API_BASE}/api/admin/stats`, {
                     headers: {
                         'Authorization': `Bearer ${token}`
                     }
@@ -518,14 +865,87 @@
                 
                 if (response.ok) {
                     const stats = await response.json();
-                    document.getElementById('totalOrders').textContent = stats.orders.total_orders || 0;
-                    document.getElementById('totalRevenue').textContent = `${stats.orders.total_revenue || 0} BYN`;
-                    document.getElementById('totalUsers').textContent = stats.users.count || 0;
-                    document.getElementById('totalProducts').textContent = stats.products.count || 0;
+                    document.getElementById('totalOrders').textContent = stats.total.total_orders || 0;
+                    document.getElementById('totalRevenue').textContent = `${(stats.total.total_revenue || 0).toFixed(2)} BYN`;
+                    document.getElementById('totalUsers').textContent = stats.total.total_customers || 0;
+                    document.getElementById('totalProducts').textContent = 'Загрузка...';
+                    
+                    // Добавляем графики и детальную статистику
+                    loadDetailedStats(stats);
                 }
             } catch (error) {
                 console.error('Error loading stats:', error);
             }
+        }
+        
+        function loadDetailedStats(stats) {
+            // Обновляем или создаем детальную статистику
+            let detailedStatsContainer = document.getElementById('detailedStats');
+            if (!detailedStatsContainer) {
+                detailedStatsContainer = document.createElement('div');
+                detailedStatsContainer.id = 'detailedStats';
+                detailedStatsContainer.className = 'detailed-stats';
+                document.querySelector('#dashboard-tab .stats-grid').after(detailedStatsContainer);
+            }
+            
+            detailedStatsContainer.innerHTML = `
+                <div class="section">
+                    <div class="section-title">Продажи по категориям (30 дней)</div>
+                    <div class="category-stats">
+                        ${stats.byCategory.map(cat => `
+                            <div class="category-stat-item">
+                                <div class="category-name">${cat.category_name}</div>
+                                <div class="category-revenue">${cat.revenue.toFixed(2)} BYN</div>
+                                <div class="category-orders">${cat.orders_count} заказов</div>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+                
+                <div class="section">
+                    <div class="section-title">⚠️ Низкие остатки</div>
+                    <div class="low-stock-alerts">
+                        ${stats.lowStock.length > 0 ? `
+                            <div class="stock-alert-section">
+                                <h4>Товары с остатками ≤ 10:</h4>
+                                ${stats.lowStock.map(item => `
+                                    <div class="stock-alert-item danger">
+                                        <strong>${item.name}</strong> (${item.category_name}): ${item.stock} шт.
+                                    </div>
+                                `).join('')}
+                            </div>
+                        ` : '<div class="no-alerts">✅ Все товары в наличии</div>'}
+                        
+                        ${stats.lowStockFlavors.length > 0 ? `
+                            <div class="stock-alert-section">
+                                <h4>Вкусы с остатками ≤ 5:</h4>
+                                ${stats.lowStockFlavors.map(item => `
+                                    <div class="stock-alert-item warning">
+                                        <strong>${item.product_name}</strong> - ${item.flavor_name}: ${item.stock} шт.
+                                    </div>
+                                `).join('')}
+                            </div>
+                        ` : ''}
+                    </div>
+                </div>
+                
+                <div class="section">
+                    <div class="section-title">🔥 Топ товары (30 дней)</div>
+                    <div class="top-products">
+                        ${stats.topProducts.map((product, index) => `
+                            <div class="top-product-item">
+                                <div class="product-rank">#${index + 1}</div>
+                                <div class="product-info">
+                                    <div class="product-name">${product.name}</div>
+                                    <div class="product-stats">
+                                        ${product.times_sold} раз · ${product.total_quantity} шт · ${product.revenue.toFixed(2)} BYN
+                                    </div>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            `;
         }
         
         async function loadOrders() {
@@ -681,6 +1101,108 @@
                 }
             } catch (error) {
                 console.error('Error loading all orders:', error);
+            }
+        }
+        
+        // Функции управления отзывами
+        async function loadReviews() {
+            const token = localStorage.getItem('adminToken');
+            
+            try {
+                const response = await fetch(`${API_BASE}/api/admin/reviews`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                
+                if (response.ok) {
+                    const reviews = await response.json();
+                    const tbody = document.getElementById('reviewsTable');
+                    
+                    if (reviews.length === 0) {
+                        tbody.innerHTML = '<tr><td colspan="7">Нет отзывов</td></tr>';
+                        return;
+                    }
+                    
+                    tbody.innerHTML = reviews.map(review => `
+                        <tr>
+                            <td>#${review.id}</td>
+                            <td>${review.product_name || 'Магазин'}</td>
+                            <td>${review.telegram_username || 'Аноним'}</td>
+                            <td>${'⭐'.repeat(review.rating)}${'☆'.repeat(5 - review.rating)}</td>
+                            <td>${review.review_text}</td>
+                            <td>
+                                <span class="status-badge status-${review.is_approved ? 'approved' : 'pending'}">
+                                    ${review.is_approved ? '✅ Одобрен' : '⏳ На модерации'}
+                                </span>
+                            </td>
+                            <td>
+                                ${!review.is_approved ? `
+                                    <button class="btn btn-success btn-sm" onclick="approveReview(${review.id})">
+                                        ✅ Одобрить
+                                    </button>
+                                ` : ''}
+                                <button class="btn btn-danger btn-sm" onclick="deleteReview(${review.id})">
+                                    🗑️ Удалить
+                                </button>
+                            </td>
+                        </tr>
+                    `).join('');
+                }
+            } catch (error) {
+                console.error('Error loading reviews:', error);
+            }
+        }
+        
+        async function approveReview(reviewId) {
+            const token = localStorage.getItem('adminToken');
+            
+            try {
+                const response = await fetch(`${API_BASE}/api/admin/reviews/${reviewId}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({ is_approved: true })
+                });
+                
+                if (response.ok) {
+                    loadReviews();
+                    alert('Отзыв одобрен!');
+                } else {
+                    alert('Ошибка одобрения отзыва');
+                }
+            } catch (error) {
+                console.error('Error approving review:', error);
+                alert('Ошибка соединения');
+            }
+        }
+        
+        async function deleteReview(reviewId) {
+            if (!confirm('Удалить этот отзыв?')) return;
+            
+            const token = localStorage.getItem('adminToken');
+            
+            try {
+                const response = await fetch(`${API_BASE}/api/admin/reviews/${reviewId}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({ is_approved: false })
+                });
+                
+                if (response.ok) {
+                    loadReviews();
+                    alert('Отзыв отклонен!');
+                } else {
+                    alert('Ошибка отклонения отзыва');
+                }
+            } catch (error) {
+                console.error('Error rejecting review:', error);
+                alert('Ошибка соединения');
             }
         }
         

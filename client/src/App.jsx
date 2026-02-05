@@ -423,9 +423,31 @@ function CartDrawer({ open, items, onClose, onDec, onInc, onRemove, onClear }) {
 function ReviewsPlaceholder() {
   const [reviewForm, setReviewForm] = useState({
     username: '',
-    text: ''
+    text: '',
+    rating: 5
   })
   const [submitting, setSubmitting] = useState(false)
+  const [reviews, setReviews] = useState([])
+  const [loading, setLoading] = useState(true)
+
+  // Загрузка отзывов
+  useEffect(() => {
+    const loadReviews = async () => {
+      try {
+        const response = await fetch(`${import.meta.env.VITE_API_URL}/reviews`)
+        if (response.ok) {
+          const data = await response.json()
+          setReviews(data)
+        }
+      } catch (error) {
+        console.error('Error loading reviews:', error)
+      } finally {
+        setLoading(false)
+      }
+    }
+    
+    loadReviews()
+  }, [])
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -438,14 +460,43 @@ function ReviewsPlaceholder() {
 
     setSubmitting(true)
     try {
-      // Здесь можно добавить API для отправки отзыва
-      alert('Спасибо за отзыв! 🎉')
-      setReviewForm({ username: '', text: '' })
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/reviews`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          telegram_username: reviewForm.username,
+          review_text: reviewForm.text,
+          rating: reviewForm.rating,
+          user_id: 1, // Временное решение, лучше получать из auth
+          product_id: null // Отзыв о магазине в целом
+        })
+      })
+
+      if (response.ok) {
+        alert('Спасибо за отзыв! 🎉 Он будет опубликован после модерации.')
+        setReviewForm({ username: '', text: '', rating: 5 })
+        
+        // Перезагружаем отзывы
+        const reviewsResponse = await fetch(`${import.meta.env.VITE_API_URL}/reviews`)
+        if (reviewsResponse.ok) {
+          const data = await reviewsResponse.json()
+          setReviews(data)
+        }
+      } else {
+        throw new Error('Failed to submit review')
+      }
     } catch (error) {
+      console.error('Error submitting review:', error)
       alert('Ошибка отправки отзыва')
     } finally {
       setSubmitting(false)
     }
+  }
+
+  const renderStars = (rating) => {
+    return '⭐'.repeat(rating) + '☆'.repeat(5 - rating)
   }
 
   return (
@@ -462,6 +513,29 @@ function ReviewsPlaceholder() {
               onChange={(e) => setReviewForm(prev => ({ ...prev, username: e.target.value }))}
               disabled={submitting}
             />
+            <div style={{ margin: '12px 0' }}>
+              <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: '500' }}>Оценка:</label>
+              <div style={{ display: 'flex', gap: '8px' }}>
+                {[1, 2, 3, 4, 5].map(star => (
+                  <button
+                    key={star}
+                    type="button"
+                    className={`star-btn ${star <= reviewForm.rating ? 'active' : ''}`}
+                    onClick={() => setReviewForm(prev => ({ ...prev, rating: star }))}
+                    disabled={submitting}
+                    style={{ 
+                      fontSize: '24px', 
+                      background: 'none', 
+                      border: 'none', 
+                      cursor: 'pointer',
+                      opacity: star <= reviewForm.rating ? 1 : 0.3
+                    }}
+                  >
+                    ⭐
+                  </button>
+                ))}
+              </div>
+            </div>
             <textarea 
               className="textarea" 
               placeholder="Напиши отзыв…" 
@@ -481,9 +555,34 @@ function ReviewsPlaceholder() {
         </div>
         <div className="panel" style={{ marginTop: 12 }}>
           <div className="panel-title">Последние отзывы</div>
-          <div className="review-empty">
-            <div>Пока нет отзывов. Будь первым!</div>
-          </div>
+          {loading ? (
+            <div className="review-empty">
+              <div>Загружаем отзывы...</div>
+            </div>
+          ) : reviews.length === 0 ? (
+            <div className="review-empty">
+              <div>Пока нет отзывов. Будь первым!</div>
+            </div>
+          ) : (
+            <div className="reviews-list">
+              {reviews.map((review) => (
+                <div key={review.id} className="review-item" style={{ 
+                  padding: '12px', 
+                  borderBottom: '1px solid #eee',
+                  marginBottom: '8px'
+                }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                    <div style={{ fontWeight: '600' }}>{review.telegram_username || 'Аноним'}</div>
+                    <div style={{ fontSize: '12px', color: '#666' }}>
+                      {new Date(review.created_at).toLocaleDateString('ru-RU')}
+                    </div>
+                  </div>
+                  <div style={{ marginBottom: '8px' }}>{renderStars(review.rating)}</div>
+                  <div style={{ lineHeight: '1.4' }}>{review.review_text}</div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
     </div>
