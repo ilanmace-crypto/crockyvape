@@ -172,6 +172,15 @@ app.use(
     },
   })
 );
+
+app.use(
+  '/assets',
+  express.static(path.join(projectRoot, 'assets'), {
+    setHeaders: (res) => {
+      res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+    },
+  })
+);
 app.use(express.static(projectRoot, { index: false }));
 
 // Favicon handler
@@ -196,6 +205,34 @@ app.get('/health', (req, res) => {
     timestamp: new Date().toISOString(),
     message: 'Server is running'
   });
+});
+
+app.get('/api/debug/assets', (req, res) => {
+  try {
+    const distAssetsDir = path.join(projectRoot, 'client/dist/assets');
+    const rootAssetsDir = path.join(projectRoot, 'assets');
+
+    const listDir = (dir) => {
+      try {
+        if (!fs.existsSync(dir)) return { exists: false, files: [] };
+        const files = fs.readdirSync(dir);
+        return { exists: true, files: files.slice(0, 200) };
+      } catch (e) {
+        return { exists: false, error: e?.message || String(e) };
+      }
+    };
+
+    res.json({
+      cwd: process.cwd(),
+      projectRoot,
+      distAssetsDir,
+      rootAssetsDir,
+      distAssets: listDir(distAssetsDir),
+      rootAssets: listDir(rootAssetsDir),
+    });
+  } catch (e) {
+    res.status(500).json({ error: e?.message || String(e) });
+  }
 });
 
 // Debug endpoint
