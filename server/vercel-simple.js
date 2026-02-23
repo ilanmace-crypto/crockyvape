@@ -188,12 +188,7 @@ const app = express();
 
  const renderIndexHtml = (res) => {
   try {
-    const clientIndexPath = path.join(projectRoot, 'client/dist/index.html');
-    if (fs.existsSync(clientIndexPath)) {
-      res.setHeader('Cache-Control', 'no-store');
-      return res.sendFile(clientIndexPath);
-    }
-
+    // Force dynamic generation to ensure cache busting and [DARK] title are applied
     // Always generate HTML with latest assets.
     const distAssetsDir = path.join(projectRoot, 'client/dist/assets');
     if (!fs.existsSync(distAssetsDir)) {
