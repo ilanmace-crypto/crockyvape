@@ -93,28 +93,30 @@ function CheckoutModal({ open, onClose, onSubmit, submitting }) {
     <div className="modal-overlay checkout-modal-overlay active" onClick={onClose}>
       <div className="modal checkout-modal" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
-          <div className="modal-title">Оформление заказа [v1.0.6]</div>
+          <div className="modal-title">Оформление заказа [v1.0.7]</div>
           <button type="button" className="modal-close" onClick={onClose}>
             ×
           </button>
         </div>
 
         <div className="modal-body">
-          <div className="section">
-            <div className="section-title">Твой Telegram Username</div>
+          <div className="section" style={{ marginBottom: '20px' }}>
+            <div className="section-title" style={{ color: 'var(--text)', marginBottom: '8px', display: 'block' }}>Твой Telegram Username</div>
             <input
               type="text"
               className="input"
               placeholder="Например: ivan_vape"
+              style={{ display: 'block', width: '100%', padding: '12px' }}
               value={form.telegram_username}
               onChange={(e) => setForm((p) => ({ ...p, telegram_username: e.target.value }))}
             />
           </div>
 
-          <div className="section">
-            <div className="section-title">Станция метро в Минске</div>
+          <div className="section" style={{ marginBottom: '20px' }}>
+            <div className="section-title" style={{ color: 'var(--text)', marginBottom: '8px', display: 'block' }}>Станция метро в Минске</div>
             <select
               className="input"
+              style={{ display: 'block', width: '100%', padding: '12px', appearance: 'auto' }}
               value={form.metro_station}
               onChange={(e) => setForm((p) => ({ ...p, metro_station: e.target.value }))}
             >
@@ -126,6 +128,7 @@ function CheckoutModal({ open, onClose, onSubmit, submitting }) {
               ))}
             </select>
           </div>
+        </div>
 
         <div className="modal-footer">
           <button type="button" className="modal-btn secondary" onClick={onClose}>
