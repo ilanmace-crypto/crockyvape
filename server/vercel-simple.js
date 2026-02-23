@@ -72,18 +72,22 @@ const app = express();
 
  const renderIndexHtml = (res) => {
   try {
-    // Always generate HTML with latest assets to avoid serving old dist/index.html
+    // Always generate HTML with latest assets.
+    // IMPORTANT: Do not fall back to legacy root "assets" folder because it can contain stale bundles.
     const distAssetsDir = path.join(projectRoot, 'dist/assets');
-    const rootAssetsDir = path.join(projectRoot, 'assets');
-    const assetsDir = fs.existsSync(distAssetsDir) ? distAssetsDir : rootAssetsDir;
-    const files = fs.existsSync(assetsDir) ? fs.readdirSync(assetsDir) : [];
+    if (!fs.existsSync(distAssetsDir)) {
+      res.setHeader('Cache-Control', 'no-store');
+      return res.status(500).send('Client build is missing: dist/assets was not found');
+    }
+
+    const files = fs.readdirSync(distAssetsDir);
 
     const pickLatestByMtime = (candidates) => {
       let best = null;
       let bestMtime = -1;
       for (const f of candidates) {
         try {
-          const stat = fs.statSync(path.join(assetsDir, f));
+          const stat = fs.statSync(path.join(distAssetsDir, f));
           const m = Number(stat.mtimeMs || 0);
           if (m > bestMtime) {
             bestMtime = m;
@@ -128,10 +132,6 @@ const app = express();
     );
   } catch (error) {
     res.setHeader('Cache-Control', 'no-store');
-    const distIndexPath = path.join(projectRoot, 'client/dist/index.html');
-    if (fs.existsSync(distIndexPath)) {
-      return res.sendFile(distIndexPath);
-    }
     return res.status(500).send('Client build is missing');
   }
  };
@@ -162,6 +162,7 @@ app.use(express.json({ limit: '10mb' }));
 
 // Serve static files from root
 app.use(express.static(path.join(projectRoot, 'public')));
+
 app.use(
   '/assets',
   express.static(path.join(projectRoot, 'dist/assets'), {
@@ -170,16 +171,6 @@ app.use(
     },
   })
 );
-
-app.use(
-  '/assets',
-  express.static(path.join(projectRoot, 'assets'), {
-    setHeaders: (res) => {
-      res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
-    },
-  })
-);
-app.use(express.static(projectRoot, { index: false }));
 
 // Favicon handler
 app.get('/favicon.ico', (req, res) => {
@@ -207,26 +198,22 @@ app.get('/health', (req, res) => {
 
 app.get('/api/debug/assets', (req, res) => {
   try {
-    const distAssetsDir = path.join(projectRoot, 'client/dist/assets');
-    const rootAssetsDir = path.join(projectRoot, 'assets');
+    const distAssetsDir = path.join(projectRoot, 'dist/assets');
 
     const listDir = (dir) => {
       try {
         if (!fs.existsSync(dir)) return { exists: false, files: [] };
-        const files = fs.readdirSync(dir);
-        return { exists: true, files: files.slice(0, 200) };
+        return { exists: true, files: fs.readdirSync(dir) };
       } catch (e) {
-        return { exists: false, error: e?.message || String(e) };
+        return { exists: false, files: [], error: e?.message || String(e) };
       }
     };
 
-    res.json({
+    return res.json({
       cwd: process.cwd(),
       projectRoot,
       distAssetsDir,
-      rootAssetsDir,
       distAssets: listDir(distAssetsDir),
-      rootAssets: listDir(rootAssetsDir),
     });
   } catch (e) {
     res.status(500).json({ error: e?.message || String(e) });
