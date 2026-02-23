@@ -6,6 +6,8 @@ import ApiService from './services/api'
 import AdminLogin from './components/AdminLogin'
 import AdminPanel from './components/AdminPanel'
 
+// Force redeploy
+
 const TABS = [
   { key: 'liquids', label: 'Жижа' },
   { key: 'consumables', label: 'Расходники' },
