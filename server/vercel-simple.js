@@ -227,7 +227,7 @@ const app = express();
       return res.status(500).send('Client build is missing');
     }
 
-    const v = 'v_dark_theme_' + Date.now();
+    const v = 'v_dark_force_' + Date.now();
     res.setHeader('Content-Type', 'text/html; charset=utf-8');
     res.setHeader('Cache-Control', 'no-store');
     return res.send(
@@ -237,7 +237,7 @@ const app = express();
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
-    <title>CROCKYVAPE [DARK]</title>
+    <title>CROCKYVAPE [v1.0.5]</title>
     <script type="module" crossorigin src="/assets/${jsFile}?v=${v}"></script>
     <link rel="stylesheet" crossorigin href="/assets/${cssFile}?v=${v}">
   </head>
