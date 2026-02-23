@@ -20,6 +20,10 @@
   ],
   "routes": [
     {
+      "src": "/favicon.ico",
+      "dest": "/server/vercel-simple.js"
+    },
+    {
       "src": "/api/(.*)",
       "dest": "/server/vercel-simple.js"
     },
