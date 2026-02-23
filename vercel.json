@@ -20,8 +20,7 @@
   ],
   "routes": [
     {
-      "src": "/favicon.ico",
-      "dest": "/server/vercel-simple.js"
+      "handle": "filesystem"
     },
     {
       "src": "/api/(.*)",
@@ -34,6 +33,14 @@
     {
       "src": "/health",
       "dest": "/server/vercel-simple.js"
+    },
+    {
+      "src": "/favicon.ico",
+      "dest": "/server/vercel-simple.js"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/index.html"
     }
   ]
 }
