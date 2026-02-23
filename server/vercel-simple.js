@@ -53,7 +53,7 @@ const app = express();
  };
 
  const sendTelegramMessage = async (text) => {
-  // Force redeploy
+  // Force redeploy final
   try {
     const token = process.env.TELEGRAM_BOT_TOKEN;
     const chatId = process.env.TELEGRAM_GROUP_CHAT_ID || process.env.TELEGRAM_ADMIN_CHAT_ID;
