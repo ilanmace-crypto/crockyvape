@@ -7,6 +7,7 @@ import AdminLogin from './components/AdminLogin'
 import AdminPanel from './components/AdminPanel'
 
 // Force redeploy
+console.log('Crocky Vape v1.0');
 
 const TABS = [
   { key: 'liquids', label: 'Жижа' },
