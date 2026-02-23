@@ -232,7 +232,8 @@ const app = express();
       return res.status(500).send('Client build is missing');
     }
 
-    const v = Date.now();
+    // Use a fixed unique version string to force browser to reload assets after build
+    const v = 'v_dark_theme_1771850000';
     res.setHeader('Content-Type', 'text/html; charset=utf-8');
     res.setHeader('Cache-Control', 'no-store');
     return res.send(
