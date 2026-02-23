@@ -99,6 +99,18 @@ function CheckoutModal({ open, onClose, onSubmit, submitting }) {
           </button>
         </div>
 
+        <div className="modal-body">
+          <div className="section">
+            <div className="section-title">Твой Telegram Username</div>
+            <input
+              type="text"
+              className="input"
+              placeholder="Например: ivan_vape"
+              value={form.telegram_username}
+              onChange={(e) => setForm((p) => ({ ...p, telegram_username: e.target.value }))}
+            />
+          </div>
+
           <div className="section">
             <div className="section-title">Станция метро в Минске</div>
             <select
