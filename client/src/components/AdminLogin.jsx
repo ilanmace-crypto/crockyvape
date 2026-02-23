@@ -41,7 +41,7 @@ const AdminLogin = ({ onLogin }) => {
       <div className="admin-login-container">
         <div className="admin-login-header">
           <h2>Админ панель</h2>
-          <p>PARADISE-SHOP</p>
+          <p>CROCKY VAPE</p>
         </div>
         
         <form onSubmit={handleSubmit} className="admin-login-form">

@@ -17,10 +17,10 @@ function Preloader({ visible }) {
     <div className={`preloader ${visible ? 'active' : ''}`} aria-hidden={!visible}>
       <div className="preloader-inner">
         <div className="preloader-logo-wrap">
-          <img className="preloader-logo" src={logo} alt="PARADISE-SHOP" />
+          <img className="preloader-logo" src={logo} alt="CROCKYVAPE" />
           <div className="preloader-smoke" />
         </div>
-        <div className="preloader-title">PARADISE-SHOP</div>
+        <div className="preloader-title">CROCKYVAPE</div>
         <div className="preloader-subtitle">Загружаем каталог…</div>
       </div>
     </div>
@@ -30,11 +30,58 @@ function Preloader({ visible }) {
 function CheckoutModal({ open, onClose, onSubmit, submitting }) {
   const [form, setForm] = useState({
     telegram_username: '',
+    metro_station: '',
   })
+
+  const metroStations = [
+    'Аэродромная',
+    'Институт Культуры',
+    'Каменная Горка',
+    'Кунцевщина',
+    'Молодежная',
+    'Немига',
+    'Октябрьская',
+    'Парк Челюскинцев',
+    'Первомайская',
+    'Площадь Ленина',
+    'Площадь Победы',
+    'Пушкинская',
+    'Спортивная',
+    'Театральная',
+    'Фрунзенская',
+    'Юбилейная',
+    'Автозаводская',
+    'Восток',
+    'Грушевка',
+    'Ковальская Слобода',
+    'Малиновка',
+    'Могилевская',
+    'Партизанская',
+    'Переспа',
+    'Пролетарская',
+    'Славинский',
+    'Тракторный Завод',
+    'Уручье',
+    'Борисовский Тракт',
+    'Вокзальная',
+    'Дружная',
+    'Михалово',
+    'Московская',
+    'Осмоловка',
+    'Партизанская',
+    'Петровка',
+    'Площадь Франтишка Богушевича',
+    'Площадь Якуба Коласа',
+    'Серебрянка',
+    'Серова',
+    'Уручье',
+    'Филиал',
+    'Цнянка',
+  ]
 
   useEffect(() => {
     if (!open) return
-    setForm({ telegram_username: '' })
+    setForm({ telegram_username: '', metro_station: '' })
   }, [open])
 
   if (!open) return null
@@ -49,17 +96,21 @@ function CheckoutModal({ open, onClose, onSubmit, submitting }) {
           </button>
         </div>
 
-        <div className="modal-body">
           <div className="section">
-            <div className="section-title">Твой Telegram username</div>
-            <input
+            <div className="section-title">Станция метро в Минске</div>
+            <select
               className="input"
-              placeholder="Твой Telegram username"
-              value={form.telegram_username}
-              onChange={(e) => setForm((p) => ({ ...p, telegram_username: e.target.value }))}
-            />
+              value={form.metro_station}
+              onChange={(e) => setForm((p) => ({ ...p, metro_station: e.target.value }))}
+            >
+              <option value="">Выбери станцию метро</option>
+              {metroStations.map((station) => (
+                <option key={station} value={station}>
+                  {station}
+                </option>
+              ))}
+            </select>
           </div>
-        </div>
 
         <div className="modal-footer">
           <button type="button" className="modal-btn secondary" onClick={onClose}>
@@ -84,9 +135,9 @@ function Header() {
     <div className="header">
       <div className="container header-inner">
         <div className="brand">
-          <img className="brand-logo" src={logo} alt="PARADISE-SHOP" />
+          <img className="brand-logo" src={logo} alt="CROCKYVAPE" />
           <div className="brand-text">
-            <div className="brand-title">PARADISE-SHOP</div>
+            <div className="brand-title">CROCKYVAPE</div>
             <div className="brand-subtitle">Mini App</div>
           </div>
         </div>
@@ -106,9 +157,9 @@ function HeaderWithCart({ cartCount, onOpenCart }) {
     <div className="header">
       <div className="container header-inner">
         <div className="brand">
-          <img className="brand-logo" src={logo} alt="PARADISE-SHOP" />
+          <img className="brand-logo" src={logo} alt="CROCKYVAPE" />
           <div className="brand-text">
-            <div className="brand-title">PARADISE-SHOP</div>
+            <div className="brand-title">CROCKYVAPE</div>
             <div className="brand-subtitle">Mini App</div>
           </div>
         </div>
@@ -773,7 +824,7 @@ function MainApp() {
     setCheckoutOpen(true)
   }
 
-  const submitCheckout = async ({ telegram_username }) => {
+  const submitCheckout = async ({ telegram_username, metro_station }) => {
     if (checkoutSubmitting) return
     
     if (cartItems.length === 0) {
@@ -806,6 +857,10 @@ function MainApp() {
         throw new Error('Username может содержать только буквы, цифры и _')
       }
 
+      if (!metro_station) {
+        throw new Error('Выбери станцию метро')
+      }
+
       const items = cartItems.map((it) => ({
         product_id: it.id,
         flavor_name: it.flavor || null,
@@ -821,6 +876,7 @@ function MainApp() {
         telegram_user: {
           telegram_id: `username:${cleanUsername}`,
           telegram_username: cleanUsername,
+          metro_station,
         },
       }
 

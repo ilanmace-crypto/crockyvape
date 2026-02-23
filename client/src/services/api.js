@@ -6,11 +6,68 @@ class ApiService {
     try {
       const response = await fetch(`${API_BASE}/products`);
       if (!response.ok) throw new Error('Failed to fetch products');
-      return await response.json();
+      const data = await response.json();
+      return data.length > 0 ? data : this.getStaticProducts();
     } catch (error) {
       console.error('Error fetching products:', error);
-      return [];
+      return this.getStaticProducts();
     }
+  }
+
+  // Статические товары для тестирования
+  static getStaticProducts() {
+    return [
+      {
+        id: 'liquid1',
+        name: 'Клубничный Взрыв',
+        category: 'liquids',
+        price: 15.00,
+        description: 'Сочный клубничный вкус с нотками свежести',
+        image_url: null,
+        stock: 50,
+        is_active: true,
+        flavors: [
+          { flavor_name: 'Клубника', stock: 25 },
+          { flavor_name: 'Клубника со сливками', stock: 25 }
+        ]
+      },
+      {
+        id: 'liquid2',
+        name: 'Мятный Холод',
+        category: 'liquids',
+        price: 14.50,
+        description: 'Освежающий мятный вкус для любителей холода',
+        image_url: null,
+        stock: 40,
+        is_active: true,
+        flavors: [
+          { flavor_name: 'Мята', stock: 20 },
+          { flavor_name: 'Мята с лимоном', stock: 20 }
+        ]
+      },
+      {
+        id: 'consumable1',
+        name: 'Картридж для Pod',
+        category: 'consumables',
+        price: 8.00,
+        description: 'Качественный картридж для вашего устройства',
+        image_url: null,
+        stock: 100,
+        is_active: true,
+        flavors: []
+      },
+      {
+        id: 'consumable2',
+        name: 'Аккумулятор 18650',
+        category: 'consumables',
+        price: 12.00,
+        description: 'Мощный аккумулятор для ваших устройств',
+        image_url: null,
+        stock: 30,
+        is_active: true,
+        flavors: []
+      }
+    ];
   }
 
   // Получение категорий
