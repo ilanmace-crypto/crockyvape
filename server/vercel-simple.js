@@ -158,7 +158,26 @@ const app = express();
   } catch (e) {
     res.status(500).json({ ok: false, error: e?.message || String(e) });
   }
- });
+});
+
+app.get('/api/debug/version', (req, res) => {
+  res.json({
+    now: new Date().toISOString(),
+    vercel: {
+      env: process.env.VERCEL || null,
+      region: process.env.VERCEL_REGION || null,
+      url: process.env.VERCEL_URL || null,
+      gitCommitSha: process.env.VERCEL_GIT_COMMIT_SHA || null,
+      gitCommitRef: process.env.VERCEL_GIT_COMMIT_REF || null,
+      gitRepoSlug: process.env.VERCEL_GIT_REPO_SLUG || null,
+    },
+    node: {
+      version: process.version,
+      pid: process.pid,
+      cwd: process.cwd(),
+    },
+  });
+});
 
  const parseDataUrlImage = (value) => {
   if (typeof value !== 'string') return null;
