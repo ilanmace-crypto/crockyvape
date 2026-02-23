@@ -71,13 +71,13 @@ const app = express();
 
  const renderIndexHtml = (res) => {
   try {
-    const distIndexPath = path.join(projectRoot, 'client/dist/index.html');
+    const distIndexPath = path.join(projectRoot, 'dist/index.html');
     if (fs.existsSync(distIndexPath)) {
       res.setHeader('Cache-Control', 'no-store');
       return res.sendFile(distIndexPath);
     }
 
-    const distAssetsDir = path.join(projectRoot, 'client/dist/assets');
+    const distAssetsDir = path.join(projectRoot, 'dist/assets');
     const rootAssetsDir = path.join(projectRoot, 'assets');
     const assetsDir = fs.existsSync(distAssetsDir) ? distAssetsDir : rootAssetsDir;
     const files = fs.existsSync(assetsDir) ? fs.readdirSync(assetsDir) : [];
@@ -168,7 +168,7 @@ app.use(express.json({ limit: '10mb' }));
 app.use(express.static(path.join(projectRoot, 'public')));
 app.use(
   '/assets',
-  express.static(path.join(projectRoot, 'client/dist/assets'), {
+  express.static(path.join(projectRoot, 'dist/assets'), {
     setHeaders: (res) => {
       res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
     },
