@@ -18,6 +18,106 @@ const app = express();
   schemaReadyPromise = (async () => {
     await pool.query(
       `
+      CREATE TABLE IF NOT EXISTS categories (
+        id SERIAL PRIMARY KEY,
+        name VARCHAR(100) NOT NULL,
+        slug VARCHAR(100) UNIQUE NOT NULL,
+        description TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `
+    );
+
+    await pool.query(
+      `
+      CREATE TABLE IF NOT EXISTS products (
+        id VARCHAR(50) PRIMARY KEY,
+        name VARCHAR(200) NOT NULL,
+        category_id INTEGER REFERENCES categories(id),
+        price DECIMAL(10,2) NOT NULL,
+        description TEXT,
+        image_url VARCHAR(500),
+        stock INTEGER DEFAULT 0,
+        is_active BOOLEAN DEFAULT TRUE,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `
+    );
+
+    await pool.query(
+      `
+      CREATE TABLE IF NOT EXISTS product_flavors (
+        id SERIAL PRIMARY KEY,
+        product_id VARCHAR(50) NOT NULL REFERENCES products(id) ON DELETE CASCADE,
+        flavor_name VARCHAR(100) NOT NULL,
+        stock INTEGER DEFAULT 0,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE (product_id, flavor_name)
+      )
+    `
+    );
+
+    await pool.query(
+      `
+      CREATE TABLE IF NOT EXISTS users (
+        id SERIAL PRIMARY KEY,
+        telegram_id VARCHAR(100) UNIQUE NOT NULL,
+        telegram_username VARCHAR(100),
+        telegram_first_name VARCHAR(100),
+        telegram_last_name VARCHAR(100),
+        phone VARCHAR(20),
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `
+    );
+
+    await pool.query(
+      `
+      CREATE TABLE IF NOT EXISTS orders (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        total_amount DECIMAL(10,2) NOT NULL,
+        status VARCHAR(20) DEFAULT 'pending',
+        delivery_address TEXT,
+        phone VARCHAR(20),
+        notes TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `
+    );
+
+    await pool.query(
+      `
+      CREATE TABLE IF NOT EXISTS order_items (
+        id SERIAL PRIMARY KEY,
+        order_id INTEGER NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
+        product_id VARCHAR(50) NOT NULL REFERENCES products(id) ON DELETE CASCADE,
+        flavor_name VARCHAR(100),
+        quantity INTEGER NOT NULL,
+        price DECIMAL(10,2) NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `
+    );
+
+    await pool.query(
+      `
+      CREATE TABLE IF NOT EXISTS admins (
+        id SERIAL PRIMARY KEY,
+        username VARCHAR(50) UNIQUE NOT NULL,
+        password_hash VARCHAR(255) NOT NULL,
+        role VARCHAR(20) DEFAULT 'admin',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        last_login TIMESTAMP NULL
+      )
+    `
+    );
+
+    await pool.query(
+      `
       CREATE TABLE IF NOT EXISTS product_images (
         product_id TEXT PRIMARY KEY,
         mime_type TEXT NOT NULL,
@@ -43,6 +143,22 @@ const app = express();
   })();
   return schemaReadyPromise;
  };
+
+ app.get('/api/debug/tables', async (req, res) => {
+  try {
+    const result = await pool.query(
+      `
+      SELECT table_name
+      FROM information_schema.tables
+      WHERE table_schema = 'public'
+      ORDER BY table_name
+    `
+    );
+    res.json({ ok: true, tables: result.rows.map((r) => r.table_name) });
+  } catch (e) {
+    res.status(500).json({ ok: false, error: e?.message || String(e) });
+  }
+ });
 
  const parseDataUrlImage = (value) => {
   if (typeof value !== 'string') return null;
