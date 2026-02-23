@@ -93,7 +93,7 @@ function CheckoutModal({ open, onClose, onSubmit, submitting }) {
     <div className="modal-overlay checkout-modal-overlay active" onClick={onClose}>
       <div className="modal checkout-modal" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
-          <div className="modal-title">Оформление заказа</div>
+          <div className="modal-title">Оформление заказа [v1.0.6]</div>
           <button type="button" className="modal-close" onClick={onClose}>
             ×
           </button>
