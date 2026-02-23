@@ -72,12 +72,7 @@ const app = express();
 
  const renderIndexHtml = (res) => {
   try {
-    const distIndexPath = path.join(projectRoot, 'dist/index.html');
-    if (fs.existsSync(distIndexPath)) {
-      res.setHeader('Cache-Control', 'no-store');
-      return res.sendFile(distIndexPath);
-    }
-
+    // Always generate HTML with latest assets to avoid serving old dist/index.html
     const distAssetsDir = path.join(projectRoot, 'dist/assets');
     const rootAssetsDir = path.join(projectRoot, 'assets');
     const assetsDir = fs.existsSync(distAssetsDir) ? distAssetsDir : rootAssetsDir;
