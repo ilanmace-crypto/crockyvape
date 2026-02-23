@@ -72,12 +72,17 @@ const app = express();
 
  const renderIndexHtml = (res) => {
   try {
+    const clientIndexPath = path.join(projectRoot, 'client/dist/index.html');
+    if (fs.existsSync(clientIndexPath)) {
+      res.setHeader('Cache-Control', 'no-store');
+      return res.sendFile(clientIndexPath);
+    }
+
     // Always generate HTML with latest assets.
-    // IMPORTANT: Do not fall back to legacy root "assets" folder because it can contain stale bundles.
-    const distAssetsDir = path.join(projectRoot, 'dist/assets');
+    const distAssetsDir = path.join(projectRoot, 'client/dist/assets');
     if (!fs.existsSync(distAssetsDir)) {
       res.setHeader('Cache-Control', 'no-store');
-      return res.status(500).send('Client build is missing: dist/assets was not found');
+      return res.status(500).send('Client build is missing: client/dist/assets was not found');
     }
 
     const files = fs.readdirSync(distAssetsDir);
@@ -165,7 +170,7 @@ app.use(express.static(path.join(projectRoot, 'public')));
 
 app.use(
   '/assets',
-  express.static(path.join(projectRoot, 'dist/assets'), {
+  express.static(path.join(projectRoot, 'client/dist/assets'), {
     setHeaders: (res) => {
       res.setHeader('Cache-Control', 'no-cache');
     },
@@ -198,7 +203,7 @@ app.get('/health', (req, res) => {
 
 app.get('/api/debug/assets', (req, res) => {
   try {
-    const distAssetsDir = path.join(projectRoot, 'dist/assets');
+    const distAssetsDir = path.join(projectRoot, 'client/dist/assets');
 
     const listDir = (dir) => {
       try {

@@ -7,7 +7,6 @@ yarn-error.log*
 
 # Production builds
 /dist/
-/client/dist/
 /client/build/
 /server/build/
 

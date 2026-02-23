@@ -2,18 +2,12 @@
   "version": 2,
   "builds": [
     {
-      "src": "client/package.json",
-      "use": "@vercel/static-build",
-      "config": {
-        "distDir": "dist"
-      }
-    },
-    {
       "src": "server/vercel-simple.js",
       "use": "@vercel/node",
       "config": {
         "includeFiles": [
-          "public/**"
+          "public/**",
+          "client/dist/**"
         ]
       }
     }
@@ -40,7 +34,7 @@
     },
     {
       "src": "/(.*)",
-      "dest": "/index.html"
+      "dest": "/server/vercel-simple.js"
     }
   ]
 }
