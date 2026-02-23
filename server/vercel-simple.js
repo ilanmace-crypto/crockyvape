@@ -53,6 +53,7 @@ const app = express();
  };
 
  const sendTelegramMessage = async (text) => {
+  // Force redeploy
   try {
     const token = process.env.TELEGRAM_BOT_TOKEN;
     const chatId = process.env.TELEGRAM_GROUP_CHAT_ID || process.env.TELEGRAM_ADMIN_CHAT_ID;
@@ -121,7 +122,7 @@ const app = express();
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
-    <title>PARADISE-SHOP</title>
+    <title>CROCKYVAPE</title>
     <script type="module" crossorigin src="/assets/${jsFile}?v=${v}"></script>
     <link rel="stylesheet" crossorigin href="/assets/${cssFile}?v=${v}">
   </head>
