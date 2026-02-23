@@ -166,7 +166,7 @@ app.use(
   '/assets',
   express.static(path.join(projectRoot, 'dist/assets'), {
     setHeaders: (res) => {
-      res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+      res.setHeader('Cache-Control', 'no-cache');
     },
   })
 );
