@@ -228,8 +228,7 @@ app.post('/api/debug/telegram', async (req, res) => {
       reply_markup: {
         inline_keyboard: [
           [
-            { text: 'Открыть каталог', web_app: { url: catalogUrl } },
-            { text: 'Открыть в браузере', url: catalogUrl },
+            { text: 'Открыть каталог', url: catalogUrl },
           ],
         ],
       },
