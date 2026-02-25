@@ -347,11 +347,34 @@
   place-items: center;
 }
 
-.preloader-logo {
-  width: 140px;
-  height: 140px;
-  filter: drop-shadow(0 0 24px rgba(34, 211, 238, 0.18));
+.preloader-mark {
+  width: 132px;
+  height: 132px;
+  border-radius: 999px;
+  background: radial-gradient(60px 60px at 35% 30%, rgba(255, 255, 255, 0.20), transparent 60%),
+    linear-gradient(135deg, rgba(139, 92, 246, 0.95), rgba(34, 211, 238, 0.90));
+  box-shadow:
+    0 22px 60px rgba(0, 0, 0, 0.55),
+    0 0 0 1px rgba(255, 255, 255, 0.14) inset,
+    0 0 0 10px rgba(255, 255, 255, 0.04) inset;
+  display: grid;
+  place-items: center;
   animation: pod-float 1.8s ease-in-out infinite;
+}
+
+.preloader-mark-inner {
+  width: 112px;
+  height: 112px;
+  border-radius: 999px;
+  background: rgba(6, 16, 24, 0.55);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  display: grid;
+  place-items: center;
+  font-weight: 1000;
+  letter-spacing: 1px;
+  font-size: 28px;
+  color: rgba(255, 255, 255, 0.92);
+  text-shadow: 0 10px 30px rgba(0, 0, 0, 0.55);
 }
 
 .preloader-smoke {

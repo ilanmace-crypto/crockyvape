@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { HashRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
 import './App.css'
-import logo from './assets/paradise-shop-logo.svg'
 import ApiService from './services/api'
 import AdminLogin from './components/AdminLogin'
 import AdminPanel from './components/AdminPanel'
@@ -21,7 +20,9 @@ function Preloader({ visible }) {
     <div className={`preloader ${visible ? 'active' : ''}`} aria-hidden={!visible}>
       <div className="preloader-inner">
         <div className="preloader-logo-wrap">
-          <img className="preloader-logo" src={logo} alt="CROCKYVAPE" />
+          <div className="preloader-mark" aria-label="CROCKYVAPE" role="img">
+            <div className="preloader-mark-inner">CV</div>
+          </div>
           <div className="preloader-smoke" />
         </div>
         <div className="preloader-title">CROCKYVAPE</div>
