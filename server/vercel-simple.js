@@ -210,6 +210,11 @@ app.post('/api/debug/telegram', async (req, res) => {
  app.post('/api/debug/telegram/catalog', async (req, res) => {
   const fallbackUrl = process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'https://crockyvape.vercel.app/';
   const catalogUrl = String(req.body?.url || process.env.PUBLIC_BASE_URL || fallbackUrl).trim();
+  const chatIdOverrideRaw = req.body?.chat_id;
+  const chatIdOverride =
+    chatIdOverrideRaw === undefined || chatIdOverrideRaw === null || String(chatIdOverrideRaw).trim() === ''
+      ? null
+      : String(chatIdOverrideRaw).trim();
 
   if (!catalogUrl) {
     return res.status(400).json({ ok: false, error: 'Missing url' });
@@ -218,6 +223,7 @@ app.post('/api/debug/telegram', async (req, res) => {
   const result = await sendTelegramMessage(
     '🛒 <b>Каталог CROCKYVAPE</b>\n\nНажми кнопку ниже, чтобы открыть каталог.',
     {
+      ...(chatIdOverride ? { chat_id: chatIdOverride } : {}),
       disable_web_page_preview: true,
       reply_markup: {
         inline_keyboard: [
@@ -248,7 +254,11 @@ const parseDataUrlImage = (value) => {
   // Force redeploy final
   try {
     const token = process.env.TELEGRAM_BOT_TOKEN;
-    const chatId = process.env.TELEGRAM_GROUP_CHAT_ID || process.env.TELEGRAM_ADMIN_CHAT_ID;
+    const resolvedChatId =
+      (extra && typeof extra === 'object' && (extra.chat_id !== undefined && extra.chat_id !== null)
+        ? extra.chat_id
+        : null);
+    const chatId = resolvedChatId || process.env.TELEGRAM_GROUP_CHAT_ID || process.env.TELEGRAM_ADMIN_CHAT_ID;
     if (!token || !chatId) {
       return { ok: false, error: 'Missing TELEGRAM_BOT_TOKEN or TELEGRAM_(GROUP|ADMIN)_CHAT_ID' };
     }
