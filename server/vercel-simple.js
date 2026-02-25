@@ -205,7 +205,36 @@ app.post('/api/debug/telegram', async (req, res) => {
     return res.status(500).json({ ok: false, result });
   }
   return res.json({ ok: true, result });
-});
+ });
+
+ app.post('/api/debug/telegram/catalog', async (req, res) => {
+  const fallbackUrl = process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'https://crockyvape.vercel.app/';
+  const catalogUrl = String(req.body?.url || process.env.PUBLIC_BASE_URL || fallbackUrl).trim();
+
+  if (!catalogUrl) {
+    return res.status(400).json({ ok: false, error: 'Missing url' });
+  }
+
+  const result = await sendTelegramMessage(
+    '🛒 <b>Каталог CROCKYVAPE</b>\n\nНажми кнопку ниже, чтобы открыть каталог.',
+    {
+      disable_web_page_preview: true,
+      reply_markup: {
+        inline_keyboard: [
+          [
+            { text: 'Открыть каталог', web_app: { url: catalogUrl } },
+            { text: 'Открыть в браузере', url: catalogUrl },
+          ],
+        ],
+      },
+    }
+  );
+
+  if (!result?.ok) {
+    return res.status(500).json({ ok: false, result });
+  }
+  return res.json({ ok: true, result });
+ });
 
 const parseDataUrlImage = (value) => {
   if (typeof value !== 'string') return null;
@@ -215,7 +244,7 @@ const parseDataUrlImage = (value) => {
   return { mime: match[1], b64: match[2] };
  };
 
- const sendTelegramMessage = async (text) => {
+ const sendTelegramMessage = async (text, extra = {}) => {
   // Force redeploy final
   try {
     const token = process.env.TELEGRAM_BOT_TOKEN;
@@ -228,7 +257,7 @@ const parseDataUrlImage = (value) => {
     const resp = await fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ chat_id: chatId, text, parse_mode: 'HTML' }),
+      body: JSON.stringify({ chat_id: chatId, text, parse_mode: 'HTML', ...(extra && typeof extra === 'object' ? extra : {}) }),
     });
     const data = await resp.json().catch(() => null);
     if (!resp.ok || !data?.ok) {
