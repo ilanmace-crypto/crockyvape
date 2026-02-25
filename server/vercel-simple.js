@@ -179,7 +179,35 @@ app.get('/api/debug/version', (req, res) => {
   });
 });
 
- const parseDataUrlImage = (value) => {
+app.get('/api/debug/telegram', async (req, res) => {
+  const token = process.env.TELEGRAM_BOT_TOKEN;
+  const groupChatId = process.env.TELEGRAM_GROUP_CHAT_ID;
+  const adminChatId = process.env.TELEGRAM_ADMIN_CHAT_ID;
+
+  res.json({
+    ok: true,
+    env: {
+      hasToken: Boolean(token),
+      hasGroupChatId: Boolean(groupChatId),
+      hasAdminChatId: Boolean(adminChatId),
+      target: groupChatId ? 'group' : (adminChatId ? 'admin' : null),
+    },
+  });
+});
+
+app.post('/api/debug/telegram', async (req, res) => {
+  const text = String(req.body?.text || '').trim();
+  if (!text) {
+    return res.status(400).json({ ok: false, error: 'Missing text' });
+  }
+  const result = await sendTelegramMessage(text);
+  if (!result?.ok) {
+    return res.status(500).json({ ok: false, result });
+  }
+  return res.json({ ok: true, result });
+});
+
+const parseDataUrlImage = (value) => {
   if (typeof value !== 'string') return null;
   if (!value.startsWith('data:')) return null;
   const match = value.match(/^data:([^;]+);base64,(.+)$/);
@@ -192,16 +220,28 @@ app.get('/api/debug/version', (req, res) => {
   try {
     const token = process.env.TELEGRAM_BOT_TOKEN;
     const chatId = process.env.TELEGRAM_GROUP_CHAT_ID || process.env.TELEGRAM_ADMIN_CHAT_ID;
-    if (!token || !chatId) return;
+    if (!token || !chatId) {
+      return { ok: false, error: 'Missing TELEGRAM_BOT_TOKEN or TELEGRAM_(GROUP|ADMIN)_CHAT_ID' };
+    }
 
     const url = `https://api.telegram.org/bot${token}/sendMessage`;
-    await fetch(url, {
+    const resp = await fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ chat_id: chatId, text, parse_mode: 'HTML' }),
     });
+    const data = await resp.json().catch(() => null);
+    if (!resp.ok || !data?.ok) {
+      return {
+        ok: false,
+        status: resp.status,
+        telegram: data,
+      };
+    }
+    return { ok: true, telegram: data };
   } catch (e) {
     console.error('Telegram notify error:', e);
+    return { ok: false, error: e?.message || String(e) };
   }
  };
 
@@ -660,6 +700,7 @@ const createOrder = async (req, res) => {
           `🔔 <b>НОВЫЙ ЗАКАЗ</b>\n\n` +
           `👤 <b>Клиент:</b> ${tg || 'Не указано'}\n` +
           `${phone ? `📞 <b>Телефон:</b> ${phone}\n` : ''}` +
+          `${telegram_user?.metro_station ? `🚇 <b>Станция метро:</b> ${telegram_user.metro_station}\n` : ''}` +
           `${delivery_address ? `🏠 <b>Адрес:</b> ${delivery_address}\n` : ''}` +
           `${notes ? `📝 <b>Комментарий:</b> ${notes}\n` : ''}` +
           `\n📦 <b>Состав заказа:</b>\n` +
