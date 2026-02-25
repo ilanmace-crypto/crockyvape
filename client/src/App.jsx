@@ -6,8 +6,8 @@ import ApiService from './services/api'
 import AdminLogin from './components/AdminLogin'
 import AdminPanel from './components/AdminPanel'
 
-// BUILD_v1_0_10 - Force JS hash change
-console.log('BUILD_v1_0_10');
+// BUILD_v1_0_11 - Force JS hash change
+console.log('BUILD_v1_0_11');
 console.log('Crocky Vape v1.0');
 
 const TABS = [
@@ -94,7 +94,7 @@ function CheckoutModal({ open, onClose, onSubmit, submitting }) {
     <div className="modal-overlay checkout-modal-overlay active" onClick={onClose}>
       <div className="modal checkout-modal" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
-          <div className="modal-title">Оформление заказа [v1.0.8]</div>
+          <div className="modal-title">Оформление заказа [v1.0.11]</div>
           <button type="button" className="modal-close" onClick={onClose}>
             ×
           </button>
