@@ -6,7 +6,8 @@ import ApiService from './services/api'
 import AdminLogin from './components/AdminLogin'
 import AdminPanel from './components/AdminPanel'
 
-// Force redeploy
+// BUILD_v1_0_10 - Force JS hash change
+console.log('BUILD_v1_0_10');
 console.log('Crocky Vape v1.0');
 
 const TABS = [
