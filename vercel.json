@@ -1,40 +1,7 @@
 {
-  "version": 2,
-  "builds": [
-    {
-      "src": "server/vercel-simple.js",
-      "use": "@vercel/node",
-      "config": {
-        "includeFiles": [
-          "public/**",
-          "client/dist/**"
-        ]
-      }
-    }
-  ],
-  "routes": [
-    {
-      "handle": "filesystem"
-    },
-    {
-      "src": "/api/(.*)",
-      "dest": "/server/vercel-simple.js"
-    },
-    {
-      "src": "/admin/(.*)",
-      "dest": "/server/vercel-simple.js"
-    },
-    {
-      "src": "/health",
-      "dest": "/server/vercel-simple.js"
-    },
-    {
-      "src": "/favicon.ico",
-      "dest": "/server/vercel-simple.js"
-    },
-    {
-      "src": "/(.*)",
-      "dest": "/server/vercel-simple.js"
-    }
+  "buildCommand": "npm run build --prefix client",
+  "outputDirectory": "client/dist",
+  "rewrites": [
+    { "source": "/((?!api/).*)", "destination": "/index.html" }
   ]
 }

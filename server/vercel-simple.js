@@ -246,7 +246,7 @@ app.get('/api/debug/version', (req, res) => {
       return res.status(500).send('Client build is missing');
     }
 
-    const v = 'v_hard_reset_109_' + Date.now();
+    const v = 'v_hard_reset_111_' + Date.now();
     res.setHeader('Content-Type', 'text/html; charset=utf-8');
     res.setHeader('Cache-Control', 'no-store');
     return res.send(
@@ -256,7 +256,7 @@ app.get('/api/debug/version', (req, res) => {
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
-    <title>CROCKYVAPE [v1.0.9]</title>
+    <title>CROCKYVAPE [v1.0.11]</title>
     <script type="module" crossorigin src="/assets/${jsFile}?v=${v}"></script>
     <link rel="stylesheet" crossorigin href="/assets/${cssFile}?v=${v}">
   </head>
