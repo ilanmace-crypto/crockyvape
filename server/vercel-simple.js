@@ -221,17 +221,10 @@ app.post('/api/debug/telegram', async (req, res) => {
   }
 
   const result = await sendTelegramMessage(
-    '🛒 <b>Каталог CROCKYVAPE</b>\n\nНажми кнопку ниже, чтобы открыть каталог.',
+    `🛒 <b>Каталог CROCKYVAPE</b>\n\nОткрыть: ${catalogUrl}`,
     {
       ...(chatIdOverride ? { chat_id: chatIdOverride } : {}),
-      disable_web_page_preview: true,
-      reply_markup: {
-        inline_keyboard: [
-          [
-            { text: 'Открыть каталог', url: catalogUrl },
-          ],
-        ],
-      },
+      disable_web_page_preview: false,
     }
   );
 
