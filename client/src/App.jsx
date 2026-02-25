@@ -155,7 +155,9 @@ function Header() {
     <div className="header">
       <div className="container header-inner">
         <div className="brand">
-          <img className="brand-logo" src={logo} alt="CROCKYVAPE" />
+          <div className="brand-logo" aria-label="CROCKYVAPE" role="img">
+            <div className="brand-logo-inner">CV</div>
+          </div>
           <div className="brand-text">
             <div className="brand-title">CROCKYVAPE</div>
             <div className="brand-subtitle">Mini App</div>
@@ -177,7 +179,9 @@ function HeaderWithCart({ cartCount, onOpenCart }) {
     <div className="header">
       <div className="container header-inner">
         <div className="brand">
-          <img className="brand-logo" src={logo} alt="CROCKYVAPE" />
+          <div className="brand-logo" aria-label="CROCKYVAPE" role="img">
+            <div className="brand-logo-inner">CV</div>
+          </div>
           <div className="brand-text">
             <div className="brand-title">CROCKYVAPE</div>
             <div className="brand-subtitle">Mini App</div>
