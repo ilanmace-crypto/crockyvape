@@ -250,7 +250,9 @@ const parseDataUrlImage = (value) => {
       (extra && typeof extra === 'object' && (extra.chat_id !== undefined && extra.chat_id !== null)
         ? extra.chat_id
         : null);
+    console.log('sendTelegramMessage: extra.chat_id:', extra?.chat_id, 'resolvedChatId:', resolvedChatId);
     const chatId = resolvedChatId || process.env.TELEGRAM_GROUP_CHAT_ID || process.env.TELEGRAM_ADMIN_CHAT_ID;
+    console.log('sendTelegramMessage: final chatId:', chatId);
     if (!token || !chatId) {
       return { ok: false, error: 'Missing TELEGRAM_BOT_TOKEN or TELEGRAM_(GROUP|ADMIN)_CHAT_ID' };
     }
