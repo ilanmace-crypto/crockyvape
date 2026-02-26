@@ -5,6 +5,8 @@ const cors = require('cors');
  const fs = require('fs');
  require('dotenv').config();
 
+// Force redeploy 4
+
  // Neon Postgres pool
  const pool = require('./config/neon');
 
@@ -242,17 +244,14 @@ const parseDataUrlImage = (value) => {
   return { mime: match[1], b64: match[2] };
  };
 
- const sendTelegramMessage = async (text, extra = {}) => {
-  // Force redeploy final
+const sendTelegramMessage = async (text, extra = {}) => {
   try {
     const token = process.env.TELEGRAM_BOT_TOKEN;
     const resolvedChatId =
       (extra && typeof extra === 'object' && (extra.chat_id !== undefined && extra.chat_id !== null)
         ? extra.chat_id
         : null);
-    console.log('sendTelegramMessage: extra.chat_id:', extra?.chat_id, 'resolvedChatId:', resolvedChatId);
     const chatId = resolvedChatId || process.env.TELEGRAM_GROUP_CHAT_ID || process.env.TELEGRAM_ADMIN_CHAT_ID;
-    console.log('sendTelegramMessage: final chatId:', chatId);
     if (!token || !chatId) {
       return { ok: false, error: 'Missing TELEGRAM_BOT_TOKEN or TELEGRAM_(GROUP|ADMIN)_CHAT_ID' };
     }
@@ -278,7 +277,9 @@ const parseDataUrlImage = (value) => {
   }
  };
 
- const renderIndexHtml = (res) => {
+ try {
+  // Force redeploy final
+  const renderIndexHtml = (res) => {
   try {
     // Force dynamic generation to ensure cache busting and [DARK] title are applied
     // Always generate HTML with latest assets.
