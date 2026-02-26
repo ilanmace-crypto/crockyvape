@@ -35,7 +35,9 @@ function Preloader({ visible }) {
 function CheckoutModal({ open, onClose, onSubmit, submitting }) {
   const [form, setForm] = useState({
     telegram_username: '',
+    delivery_mode: 'metro',
     metro_station: '',
+    delivery_address: '',
   })
 
   const metroStations = [
@@ -75,12 +77,11 @@ function CheckoutModal({ open, onClose, onSubmit, submitting }) {
     'Аэродро́мная',
     'Неморша́нский сад',
     'Слу́цкий гости́нец',
-    'самовывоз',
   ]
 
   useEffect(() => {
     if (!open) return
-    setForm({ telegram_username: '', metro_station: '' })
+    setForm({ telegram_username: '', delivery_mode: 'metro', metro_station: '', delivery_address: '' })
   }, [open])
 
   if (!open) return null
@@ -109,20 +110,63 @@ function CheckoutModal({ open, onClose, onSubmit, submitting }) {
           </div>
 
           <div className="section" style={{ marginBottom: '20px' }}>
-            <div className="section-title" style={{ color: 'var(--text)', marginBottom: '8px', display: 'block' }}>Станция метро или самовывоз в Минске</div>
-            <select
-              className="input"
-              style={{ display: 'block', width: '100%', padding: '12px', appearance: 'auto' }}
-              value={form.metro_station}
-              onChange={(e) => setForm((p) => ({ ...p, metro_station: e.target.value }))}
-            >
-              <option value="">Выбери станцию метро</option>
-              {metroStations.map((station) => (
-                <option key={station} value={station}>
-                  {station}
-                </option>
-              ))}
-            </select>
+            <div className="section-title" style={{ color: 'var(--text)', marginBottom: '8px', display: 'block' }}>Способ получения</div>
+            <div className="checkout-delivery-toggle">
+              <button
+                type="button"
+                className={`delivery-toggle-btn ${form.delivery_mode === 'metro' ? 'active' : ''}`}
+                onClick={() => setForm((p) => ({ ...p, delivery_mode: 'metro', metro_station: '', delivery_address: '' }))}
+              >
+                Метро
+              </button>
+              <button
+                type="button"
+                className={`delivery-toggle-btn ${form.delivery_mode === 'pickup' ? 'active' : ''}`}
+                onClick={() => setForm((p) => ({ ...p, delivery_mode: 'pickup', metro_station: 'самовывоз', delivery_address: '' }))}
+              >
+                Самовывоз
+              </button>
+              <button
+                type="button"
+                className={`delivery-toggle-btn ${form.delivery_mode === 'door' ? 'active' : ''}`}
+                onClick={() => setForm((p) => ({ ...p, delivery_mode: 'door', metro_station: 'до двери' }))}
+              >
+                До двери
+              </button>
+            </div>
+
+            {form.delivery_mode === 'metro' && (
+              <div style={{ marginTop: 12 }}>
+                <div className="section-title" style={{ color: 'var(--text)', marginBottom: '8px', display: 'block' }}>Станция метро в Минске</div>
+                <select
+                  className="input"
+                  style={{ display: 'block', width: '100%', padding: '12px', appearance: 'auto' }}
+                  value={form.metro_station}
+                  onChange={(e) => setForm((p) => ({ ...p, metro_station: e.target.value }))}
+                >
+                  <option value="">Выбери станцию метро</option>
+                  {metroStations.map((station) => (
+                    <option key={station} value={station}>
+                      {station}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+
+            {form.delivery_mode === 'door' && (
+              <div style={{ marginTop: 12 }}>
+                <div className="section-title" style={{ color: 'var(--text)', marginBottom: '8px', display: 'block' }}>Адрес доставки</div>
+                <input
+                  type="text"
+                  className="input"
+                  placeholder="Например: ул. Ленина 10, кв 5"
+                  style={{ display: 'block', width: '100%', padding: '12px' }}
+                  value={form.delivery_address}
+                  onChange={(e) => setForm((p) => ({ ...p, delivery_address: e.target.value }))}
+                />
+              </div>
+            )}
           </div>
         </div>
 
@@ -842,7 +886,7 @@ function MainApp() {
     setCheckoutOpen(true)
   }
 
-  const submitCheckout = async ({ telegram_username, metro_station }) => {
+  const submitCheckout = async ({ telegram_username, delivery_mode, metro_station, delivery_address }) => {
     if (checkoutSubmitting) return
     
     if (cartItems.length === 0) {
@@ -875,8 +919,27 @@ function MainApp() {
         throw new Error('Username может содержать только буквы, цифры и _')
       }
 
-      if (!metro_station) {
-        throw new Error('Выбери станцию метро')
+      const mode = delivery_mode || 'metro'
+
+      let resolvedMetroStation = String(metro_station || '').trim()
+      let resolvedDeliveryAddress = String(delivery_address || '').trim()
+
+      if (mode === 'pickup') {
+        resolvedMetroStation = 'самовывоз'
+        resolvedDeliveryAddress = ''
+      }
+
+      if (mode === 'door') {
+        resolvedMetroStation = 'до двери'
+        if (!resolvedDeliveryAddress) {
+          throw new Error('Введи адрес доставки')
+        }
+      }
+
+      if (mode === 'metro') {
+        if (!resolvedMetroStation) {
+          throw new Error('Выбери станцию метро')
+        }
       }
 
       const items = cartItems.map((it) => ({
@@ -894,8 +957,9 @@ function MainApp() {
         telegram_user: {
           telegram_id: `username:${cleanUsername}`,
           telegram_username: cleanUsername,
-          metro_station,
+          metro_station: resolvedMetroStation,
         },
+        delivery_address: resolvedDeliveryAddress || null,
       }
 
       const res = await ApiService.createOrder(payload)
@@ -927,7 +991,7 @@ function MainApp() {
             <div className="hero-left">
               <div className="hero-kicker">Минск • быстро • удобно</div>
               <div className="hero-title">CROCKYVAPE</div>
-              <div className="hero-subtitle">Каталог всегда под рукой. Выбирай вкус, оформляй заказ — уведомление сразу в Telegram.</div>
+              <div className="hero-subtitle">Каталог всегда под рукой. Выбирай вкус и оформляй заказ за пару кликов.</div>
             </div>
             <div className="hero-right">
               <img
