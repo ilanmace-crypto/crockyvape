@@ -11,8 +11,12 @@
   --danger: #fb7185;
   --shadow: 0 14px 46px rgba(0, 0, 0, 0.55);
 
-  font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
-  line-height: 1.4;
+  --radius-lg: 18px;
+  --radius-md: 14px;
+  --radius-sm: 12px;
+
+  font-family: "Manrope", ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+  line-height: 1.45;
   font-weight: 400;
   color-scheme: dark;
   color: var(--text);
@@ -34,9 +38,14 @@ body {
 body {
   margin: 0;
   min-width: 320px;
-  background: radial-gradient(1200px 700px at 50% 0%, rgba(139, 92, 246, 0.08), transparent 55%),
-    radial-gradient(1000px 600px at 70% 20%, rgba(34, 211, 238, 0.06), transparent 50%),
+  background: radial-gradient(1200px 700px at 50% 0%, rgba(139, 92, 246, 0.12), transparent 55%),
+    radial-gradient(1000px 600px at 70% 20%, rgba(34, 211, 238, 0.10), transparent 50%),
+    radial-gradient(900px 700px at 15% 65%, rgba(52, 211, 153, 0.07), transparent 55%),
     var(--bg);
+}
+
+::selection {
+  background: rgba(34, 211, 238, 0.25);
 }
 
 a {

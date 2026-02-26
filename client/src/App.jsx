@@ -923,6 +923,23 @@ function MainApp() {
       <HeaderWithCart cartCount={cartCount} onOpenCart={() => setCartOpen(true)} />
       <main className="main">
         <div className="container">
+          <section className="hero">
+            <div className="hero-left">
+              <div className="hero-kicker">Минск • быстро • удобно</div>
+              <div className="hero-title">CROCKYVAPE</div>
+              <div className="hero-subtitle">Каталог всегда под рукой. Выбирай вкус, оформляй заказ — уведомление сразу в Telegram.</div>
+            </div>
+            <div className="hero-right">
+              <img
+                className="hero-image"
+                src="/crocky.jpg"
+                alt="CROCKYVAPE"
+                onError={(e) => {
+                  e.currentTarget.style.display = 'none'
+                }}
+              />
+            </div>
+          </section>
           {activeTab === 'liquids' && (
             <ProductGrid
               title="Жидкости"
