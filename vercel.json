@@ -22,6 +22,10 @@
       "dest": "/server/vercel-simple.js"
     },
     {
+      "src": "/admin/(.*)",
+      "dest": "/server/vercel-simple.js"
+    },
+    {
       "src": "/(.*)",
       "dest": "/index.html"
     }
