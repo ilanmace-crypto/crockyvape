@@ -277,9 +277,8 @@ const sendTelegramMessage = async (text, extra = {}) => {
   }
  };
 
- try {
-  // Force redeploy final
-  const renderIndexHtml = (res) => {
+// Force redeploy final
+const renderIndexHtml = (res) => {
   try {
     // Force dynamic generation to ensure cache busting and [DARK] title are applied
     // Always generate HTML with latest assets.
