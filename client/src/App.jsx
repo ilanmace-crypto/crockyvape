@@ -12,6 +12,8 @@ console.log('Crocky Vape v1.0');
 const TABS = [
   { key: 'liquids', label: 'Жижа' },
   { key: 'consumables', label: 'Расходники' },
+  { key: 'pods', label: 'Подсистемы' },
+  { key: 'disposables', label: 'Одноразки' },
   { key: 'reviews', label: 'Отзывы' },
 ]
 
@@ -20,12 +22,15 @@ function Preloader({ visible }) {
     <div className={`preloader ${visible ? 'active' : ''}`} aria-hidden={!visible}>
       <div className="preloader-inner">
         <div className="preloader-logo-wrap">
-          <div className="preloader-mark" aria-label="CROCKYVAPE" role="img">
-            <div className="preloader-mark-inner">CV</div>
-          </div>
+          <img 
+            src="/paradise.png" 
+            alt="PARADIS SHOP" 
+            className="preloader-logo-img"
+            style={{ width: 120, height: 120, objectFit: 'contain', borderRadius: 16 }}
+          />
           <div className="preloader-smoke" />
         </div>
-        <div className="preloader-title">CROCKYVAPE</div>
+        <div className="preloader-title">PARADIS SHOP</div>
         <div className="preloader-subtitle">Загружаем каталог…</div>
       </div>
     </div>
@@ -35,53 +40,11 @@ function Preloader({ visible }) {
 function CheckoutModal({ open, onClose, onSubmit, submitting }) {
   const [form, setForm] = useState({
     telegram_username: '',
-    delivery_mode: 'metro',
-    metro_station: '',
-    delivery_address: '',
   })
-
-  const metroStations = [
-    'Уру́чье',
-    'Бори́совский тра́кт',
-    'Восто́к',
-    'Моско́вская',
-    'Па́рк Челю́скинцев',
-    'Акаде́мия нау́к',
-    'Пло́щадь Яку́ба Ко́ласа',
-    'Пло́щадь Побе́ды',
-    'Октя́брьская',
-    'Пло́щадь Ле́нина',
-    'Институ́т культу́ры',
-    'Гру́шевка',
-    'Михало́во',
-    'Петро́вщина',
-    'Мали́новка',
-    'Ка́менная Го́рка',
-    'Ку́нцевщина',
-    'Спорти́вная',
-    'Пу́шкинская',
-    'Молодёжная',
-    'Фру́нзенская',
-    'Неми́га',
-    'Купа́ловская',
-    'Первома́йская',
-    'Пролета́рская',
-    'Тра́кторный заво́д',
-    'Партиза́нская',
-    'Автозаво́дская',
-    'Могилёвская',
-    'Юбиле́йная пло́щадь',
-    'Пло́щадь Франти́шка Богуше́вича',
-    'Вокза́льная',
-    'Кова́льская Слобода́',
-    'Аэродро́мная',
-    'Неморша́нский сад',
-    'Слу́цкий гости́нец',
-  ]
 
   useEffect(() => {
     if (!open) return
-    setForm({ telegram_username: '', delivery_mode: 'metro', metro_station: '', delivery_address: '' })
+    setForm({ telegram_username: '' })
   }, [open])
 
   if (!open) return null
@@ -108,66 +71,6 @@ function CheckoutModal({ open, onClose, onSubmit, submitting }) {
               onChange={(e) => setForm((p) => ({ ...p, telegram_username: e.target.value }))}
             />
           </div>
-
-          <div className="section" style={{ marginBottom: '20px' }}>
-            <div className="section-title" style={{ color: 'var(--text)', marginBottom: '8px', display: 'block' }}>Способ получения</div>
-            <div className="checkout-delivery-toggle">
-              <button
-                type="button"
-                className={`delivery-toggle-btn ${form.delivery_mode === 'metro' ? 'active' : ''}`}
-                onClick={() => setForm((p) => ({ ...p, delivery_mode: 'metro', metro_station: '', delivery_address: '' }))}
-              >
-                Метро
-              </button>
-              <button
-                type="button"
-                className={`delivery-toggle-btn ${form.delivery_mode === 'pickup' ? 'active' : ''}`}
-                onClick={() => setForm((p) => ({ ...p, delivery_mode: 'pickup', metro_station: 'самовывоз', delivery_address: '' }))}
-              >
-                Самовывоз
-              </button>
-              <button
-                type="button"
-                className={`delivery-toggle-btn ${form.delivery_mode === 'door' ? 'active' : ''}`}
-                onClick={() => setForm((p) => ({ ...p, delivery_mode: 'door', metro_station: 'до двери' }))}
-              >
-                До двери
-              </button>
-            </div>
-
-            {form.delivery_mode === 'metro' && (
-              <div style={{ marginTop: 12 }}>
-                <div className="section-title" style={{ color: 'var(--text)', marginBottom: '8px', display: 'block' }}>Станция метро в Минске</div>
-                <select
-                  className="input"
-                  style={{ display: 'block', width: '100%', padding: '12px', appearance: 'auto' }}
-                  value={form.metro_station}
-                  onChange={(e) => setForm((p) => ({ ...p, metro_station: e.target.value }))}
-                >
-                  <option value="">Выбери станцию метро</option>
-                  {metroStations.map((station) => (
-                    <option key={station} value={station}>
-                      {station}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            )}
-
-            {form.delivery_mode === 'door' && (
-              <div style={{ marginTop: 12 }}>
-                <div className="section-title" style={{ color: 'var(--text)', marginBottom: '8px', display: 'block' }}>Адрес доставки</div>
-                <input
-                  type="text"
-                  className="input"
-                  placeholder="Например: ул. Ленина 10, кв 5"
-                  style={{ display: 'block', width: '100%', padding: '12px' }}
-                  value={form.delivery_address}
-                  onChange={(e) => setForm((p) => ({ ...p, delivery_address: e.target.value }))}
-                />
-              </div>
-            )}
-          </div>
         </div>
 
         <div className="modal-footer">
@@ -193,11 +96,11 @@ function Header() {
     <div className="header">
       <div className="container header-inner">
         <div className="brand">
-          <div className="brand-logo" aria-label="CROCKYVAPE" role="img">
-            <div className="brand-logo-inner">CV</div>
+          <div className="brand-logo" aria-label="PARADIS SHOP" role="img">
+            <div className="brand-logo-inner">PS</div>
           </div>
           <div className="brand-text">
-            <div className="brand-title">CROCKYVAPE</div>
+            <div className="brand-title">PARADIS SHOP</div>
             <div className="brand-subtitle">Mini App</div>
           </div>
         </div>
@@ -217,11 +120,11 @@ function HeaderWithCart({ cartCount, onOpenCart }) {
     <div className="header">
       <div className="container header-inner">
         <div className="brand">
-          <div className="brand-logo" aria-label="CROCKYVAPE" role="img">
-            <div className="brand-logo-inner">CV</div>
+          <div className="brand-logo" aria-label="PARADIS SHOP" role="img">
+            <div className="brand-logo-inner">PS</div>
           </div>
           <div className="brand-text">
-            <div className="brand-title">CROCKYVAPE</div>
+            <div className="brand-title">PARADIS SHOP</div>
             <div className="brand-subtitle">Mini App</div>
           </div>
         </div>
@@ -886,7 +789,7 @@ function MainApp() {
     setCheckoutOpen(true)
   }
 
-  const submitCheckout = async ({ telegram_username, delivery_mode, metro_station, delivery_address }) => {
+  const submitCheckout = async ({ telegram_username }) => {
     if (checkoutSubmitting) return
     
     if (cartItems.length === 0) {
@@ -919,29 +822,6 @@ function MainApp() {
         throw new Error('Username может содержать только буквы, цифры и _')
       }
 
-      const mode = delivery_mode || 'metro'
-
-      let resolvedMetroStation = String(metro_station || '').trim()
-      let resolvedDeliveryAddress = String(delivery_address || '').trim()
-
-      if (mode === 'pickup') {
-        resolvedMetroStation = 'самовывоз'
-        resolvedDeliveryAddress = ''
-      }
-
-      if (mode === 'door') {
-        resolvedMetroStation = 'до двери'
-        if (!resolvedDeliveryAddress) {
-          throw new Error('Введи адрес доставки')
-        }
-      }
-
-      if (mode === 'metro') {
-        if (!resolvedMetroStation) {
-          throw new Error('Выбери станцию метро')
-        }
-      }
-
       const items = cartItems.map((it) => ({
         product_id: it.id,
         flavor_name: it.flavor || null,
@@ -957,9 +837,8 @@ function MainApp() {
         telegram_user: {
           telegram_id: `username:${cleanUsername}`,
           telegram_username: cleanUsername,
-          metro_station: resolvedMetroStation,
+          metro_station: 'Ивье',
         },
-        delivery_address: resolvedDeliveryAddress || null,
       }
 
       const res = await ApiService.createOrder(payload)
@@ -989,15 +868,15 @@ function MainApp() {
         <div className="container">
           <section className="hero">
             <div className="hero-left">
-              <div className="hero-kicker">Минск • быстро • удобно</div>
-              <div className="hero-title">CROCKYVAPE</div>
+              <div className="hero-kicker">Ивье • быстро • удобно</div>
+              <div className="hero-title">PARADIS SHOP</div>
               <div className="hero-subtitle">Каталог всегда под рукой. Выбирай вкус и оформляй заказ за пару кликов.</div>
             </div>
             <div className="hero-right">
               <img
                 className="hero-image"
-                src="/crocky.jpg"
-                alt="CROCKYVAPE"
+                src="/paradise.png"
+                alt="PARADIS SHOP"
                 onError={(e) => {
                   e.currentTarget.style.display = 'none'
                 }}
@@ -1019,6 +898,22 @@ function MainApp() {
             <ProductGrid
               title="Расходники"
               products={products.filter(p => p.category === 'consumables' && Number(p.stock) > 0)}
+              onOpenProduct={(p) => setActiveProduct(p)}
+              query={searchQuery}
+            />
+          )}
+          {activeTab === 'pods' && (
+            <ProductGrid
+              title="Подсистемы"
+              products={products.filter(p => p.category === 'pods' && Number(p.stock) > 0)}
+              onOpenProduct={(p) => setActiveProduct(p)}
+              query={searchQuery}
+            />
+          )}
+          {activeTab === 'disposables' && (
+            <ProductGrid
+              title="Одноразки"
+              products={products.filter(p => p.category === 'disposables' && Number(p.stock) > 0)}
               onOpenProduct={(p) => setActiveProduct(p)}
               query={searchQuery}
             />

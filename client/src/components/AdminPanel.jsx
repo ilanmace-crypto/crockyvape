@@ -502,6 +502,7 @@ function ProductForm({ product, onSubmit, onCancel }) {
     category: product?.category || (Number(product?.category_id) === 2 ? 'consumables' : 'liquids'),
     stock: product?.stock ?? '',
     flavors: initialFlavors.length > 0 ? initialFlavors : [{ name: '', stock: 0 }],
+    colors: Array.isArray(product?.colors) ? product.colors.map((c) => ({ name: c?.name || '', stock: Number(c?.stock ?? 0) })) : [{ name: '', stock: 0 }],
     image_url: product?.image_url || '',
   });
 
@@ -526,7 +527,10 @@ function ProductForm({ product, onSubmit, onCancel }) {
     setSubmitting(true);
     try {
       const isLiquids = formData.category === 'liquids';
-      const normalizedFlavors = isLiquids
+      const isDisposables = formData.category === 'disposables';
+      const isPods = formData.category === 'pods';
+      
+      const normalizedFlavors = (isLiquids || isDisposables)
         ? (Array.isArray(formData.flavors) ? formData.flavors : [])
           .map((f) => ({
             name: String(f?.name || '').trim(),
@@ -535,12 +539,27 @@ function ProductForm({ product, onSubmit, onCancel }) {
           .filter((f) => f.name)
         : [];
 
-      if (isLiquids && normalizedFlavors.length === 0) {
+      const normalizedColors = isPods
+        ? (Array.isArray(formData.colors) ? formData.colors : [])
+          .map((c) => ({
+            name: String(c?.name || '').trim(),
+            stock: Number(c?.stock === '' ? 0 : (c?.stock ?? 0))
+          }))
+          .filter((c) => c.name)
+        : [];
+
+      if ((isLiquids || isDisposables) && normalizedFlavors.length === 0) {
         throw new Error('Добавь хотя бы 1 вкус');
       }
 
-      const totalStock = isLiquids
+      if (isPods && normalizedColors.length === 0) {
+        throw new Error('Добавь хотя бы 1 цвет');
+      }
+
+      const totalStock = (isLiquids || isDisposables)
         ? normalizedFlavors.reduce((sum, f) => sum + Number(f.stock || 0), 0)
+        : isPods
+        ? normalizedColors.reduce((sum, c) => sum + Number(c.stock || 0), 0)
         : Number(formData.stock);
 
       const data = {
@@ -550,6 +569,7 @@ function ProductForm({ product, onSubmit, onCancel }) {
         category: formData.category,
         stock: totalStock,
         flavors: normalizedFlavors,
+        colors: normalizedColors,
         image_url: formData.image_url || null,
       };
       await onSubmit(data);
@@ -623,12 +643,14 @@ function ProductForm({ product, onSubmit, onCancel }) {
             >
               <option value="liquids">Жидкости</option>
               <option value="consumables">Расходники</option>
+              <option value="pods">Подсистемы</option>
+              <option value="disposables">Одноразки</option>
             </select>
           </div>
 
-          {formData.category === 'liquids' ? (
+          {(formData.category === 'liquids' || formData.category === 'disposables') ? (
             <div className="form-group">
-              <label>Вкусы и количество банок</label>
+              <label>Вкусы и количество</label>
               <div style={{ display: 'grid', gap: 8 }}>
                 {formData.flavors.map((flavorRow, idx) => (
                   <div
@@ -686,6 +708,69 @@ function ProductForm({ product, onSubmit, onCancel }) {
                   onClick={() => setFormData({ ...formData, flavors: [...formData.flavors, { name: '', stock: 0 }] })}
                 >
                   + Добавить вкус
+                </button>
+              </div>
+            </div>
+          ) : formData.category === 'pods' ? (
+            <div className="form-group">
+              <label>Цвета и количество</label>
+              <div style={{ display: 'grid', gap: 8 }}>
+                {formData.colors.map((colorRow, idx) => (
+                  <div
+                    key={idx}
+                    style={{
+                      display: 'grid',
+                      gridTemplateColumns: '1fr 140px 40px',
+                      gap: 8,
+                      alignItems: 'center'
+                    }}
+                  >
+                    <input
+                      type="text"
+                      value={colorRow.name}
+                      onChange={(e) => {
+                        const next = [...formData.colors];
+                        next[idx] = { ...next[idx], name: e.target.value };
+                        setFormData({ ...formData, colors: next });
+                      }}
+                      placeholder="Цвет (например: Черный)"
+                      required
+                    />
+                    <input
+                      type="number"
+                      value={colorRow.stock}
+                      onChange={(e) => {
+                        const next = [...formData.colors];
+                        const raw = e.target.value;
+                        next[idx] = { ...next[idx], stock: raw === '' ? '' : Number(raw) };
+                        setFormData({ ...formData, colors: next });
+                      }}
+                      min="0"
+                      placeholder="Кол-во"
+                      required
+                    />
+                    <button
+                      type="button"
+                      className="btn-secondary"
+                      onClick={() => {
+                        const next = formData.colors.filter((_, i) => i !== idx);
+                        setFormData({ ...formData, colors: next.length ? next : [{ name: '', stock: 0 }] });
+                      }}
+                      aria-label="Удалить цвет"
+                    >
+                      ×
+                    </button>
+                  </div>
+                ))}
+              </div>
+
+              <div style={{ marginTop: 10 }}>
+                <button
+                  type="button"
+                  className="btn-secondary"
+                  onClick={() => setFormData({ ...formData, colors: [...formData.colors, { name: '', stock: 0 }] })}
+                >
+                  + Добавить цвет
                 </button>
               </div>
             </div>

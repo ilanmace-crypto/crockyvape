@@ -733,7 +733,6 @@ const createOrder = async (req, res) => {
           `🔔 <b>НОВЫЙ ЗАКАЗ</b>\n\n` +
           `👤 <b>Клиент:</b> ${tg || 'Не указано'}\n` +
           `${phone ? `📞 <b>Телефон:</b> ${phone}\n` : ''}` +
-          `${telegram_user?.metro_station ? `🚇 <b>Станция метро:</b> ${telegram_user.metro_station}\n` : ''}` +
           `${delivery_address ? `🏠 <b>Адрес:</b> ${delivery_address}\n` : ''}` +
           `${notes ? `📝 <b>Комментарий:</b> ${notes}\n` : ''}` +
           `\n📦 <b>Состав заказа:</b>\n` +

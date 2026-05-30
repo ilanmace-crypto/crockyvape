@@ -235,7 +235,6 @@ router.post('/', async (req, res) => {
 💸 <b>Общая сумма:</b> ${order.total_amount.toFixed(2)} BYN
 👤 <b>Клиент:</b> ${tg || 'Не указано'}
 ${phone ? `📞 <b>Телефон:</b> ${phone}` : ''}
-${telegram_user?.metro_station ? `🚇 <b>Станция метро:</b> ${telegram_user.metro_station}` : ''}
 ${delivery_address ? `🏠 <b>Адрес:</b> ${delivery_address}` : ''}
 ${notes ? `📝 <b>Комментарий:</b> ${notes}` : ''}
 
