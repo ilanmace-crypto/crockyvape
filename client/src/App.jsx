@@ -241,6 +241,7 @@ function ProductGrid({ title, products, onOpenProduct, query }) {
 function ProductModal({ product, onClose, onAdd }) {
   const [qty, setQty] = useState(1)
   const [selectedFlavor, setSelectedFlavor] = useState(null)
+  const [selectedColor, setSelectedColor] = useState(null)
 
   if (!product) return null
 
@@ -258,7 +259,18 @@ function ProductModal({ product, onClose, onAdd }) {
       .filter((f) => f?.name)
     : []
 
-  const canAdd = qty > 0 && (normalizedFlavors.length === 0 || selectedFlavor)
+  const normalizedColors = Array.isArray(product.colors)
+    ? product.colors
+      .map((c) => ({
+        name: c?.name || '',
+        stock: Number(c?.stock ?? 0),
+      }))
+      .filter((c) => c?.name)
+    : []
+
+  const isPods = product.category === 'pods'
+  const hasVariants = normalizedFlavors.length > 0 || normalizedColors.length > 0
+  const canAdd = qty > 0 && (!hasVariants || (isPods ? selectedColor : selectedFlavor))
 
   return (
     <div className="modal-overlay active" onClick={onClose}>
@@ -278,7 +290,7 @@ function ProductModal({ product, onClose, onAdd }) {
             </div>
           </div>
 
-          {normalizedFlavors.length > 0 && (
+          {normalizedFlavors.length > 0 && !isPods && (
             <div className="section">
               <div className="section-title">Вкус</div>
               <div className="flavor-chips">
@@ -291,6 +303,25 @@ function ProductModal({ product, onClose, onAdd }) {
                     onClick={() => setSelectedFlavor(f.name)}
                   >
                     {f.name} ({Number(f.stock) || 0})
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {normalizedColors.length > 0 && isPods && (
+            <div className="section">
+              <div className="section-title">Цвет</div>
+              <div className="flavor-chips">
+                {normalizedColors.map((c) => (
+                  <button
+                    key={c.name}
+                    type="button"
+                    className={`chip ${selectedColor === c.name ? 'active' : ''}`}
+                    disabled={Number(c.stock) <= 0}
+                    onClick={() => setSelectedColor(c.name)}
+                  >
+                    {c.name} ({Number(c.stock) || 0})
                   </button>
                 ))}
               </div>
@@ -324,7 +355,7 @@ function ProductModal({ product, onClose, onAdd }) {
             className="modal-btn primary"
             disabled={!canAdd}
             onClick={() => {
-              onAdd(product, selectedFlavor || null, qty)
+              onAdd(product, isPods ? selectedColor : selectedFlavor, qty)
               onClose()
             }}
           >
@@ -696,22 +727,28 @@ function MainApp() {
 
   const cartCount = useMemo(() => cartItems.reduce((sum, it) => sum + it.qty, 0), [cartItems])
 
-  const addToCart = (product, flavor, qty) => {
+  const addToCart = (product, variant, qty) => {
+    const isPods = product.category === 'pods'
+    const variantType = isPods ? 'color' : 'flavor'
+    const variantLabel = isPods ? 'цвету' : 'вкусу'
+    
     // Проверка остатков
-    if (flavor) {
-      const normalizedSelected = String(flavor || '').trim()
-      const flavorData = product.flavors?.find(f => {
-        const name = typeof f === 'string' ? f : (f.flavor_name || f.name)
-        return String(name || '').trim() === normalizedSelected
-      });
+    if (variant) {
+      const normalizedSelected = String(variant || '').trim()
+      const variantData = isPods
+        ? product.colors?.find(c => String(c?.name || '').trim() === normalizedSelected)
+        : product.flavors?.find(f => {
+            const name = typeof f === 'string' ? f : (f.flavor_name || f.name)
+            return String(name || '').trim() === normalizedSelected
+          });
 
       const stock = Number(
-        typeof flavorData === 'object'
-          ? (flavorData?.stock ?? product.stock)
+        typeof variantData === 'object'
+          ? (variantData?.stock ?? product.stock)
           : product.stock
       )
       if (stock < qty) {
-        alert(`Остаток по вкусу "${flavor}": ${stock} шт.`);
+        alert(`Остаток по ${variantLabel} "${variant}": ${stock} шт.`);
         return;
       }
     } else {
@@ -721,7 +758,7 @@ function MainApp() {
       }
     }
 
-    const key = `${product.id}::${flavor || 'no-flavor'}`
+    const key = `${product.id}::${variant || 'no-variant'}`
     setCartItems((prev) => {
       const existing = prev.find((x) => x.key === key)
       if (!existing) {
@@ -732,7 +769,8 @@ function MainApp() {
             id: product.id,
             name: product.name,
             price: product.price,
-            flavor: flavor || null,
+            flavor: isPods ? null : (variant || null),
+            color: isPods ? (variant || null) : null,
             qty,
           },
         ]
@@ -740,19 +778,21 @@ function MainApp() {
       
       // Проверка остатков при увеличении количества
       const newQty = existing.qty + qty;
-      if (flavor) {
-        const normalizedSelected = String(flavor || '').trim()
-        const flavorData = product.flavors?.find(f => {
-          const name = typeof f === 'string' ? f : (f.flavor_name || f.name)
-          return String(name || '').trim() === normalizedSelected
-        });
+      if (variant) {
+        const normalizedSelected = String(variant || '').trim()
+        const variantData = isPods
+          ? product.colors?.find(c => String(c?.name || '').trim() === normalizedSelected)
+          : product.flavors?.find(f => {
+              const name = typeof f === 'string' ? f : (f.flavor_name || f.name)
+              return String(name || '').trim() === normalizedSelected
+            });
         const stock = Number(
-          typeof flavorData === 'object'
-            ? (flavorData?.stock ?? product.stock)
+          typeof variantData === 'object'
+            ? (variantData?.stock ?? product.stock)
             : product.stock
         )
         if (stock < newQty) {
-          alert(`Остаток по вкусу "${flavor}": ${stock} шт.`);
+          alert(`Остаток по ${variantLabel} "${variant}": ${stock} шт.`);
           return prev;
         }
       } else {
@@ -825,6 +865,7 @@ function MainApp() {
       const items = cartItems.map((it) => ({
         product_id: it.id,
         flavor_name: it.flavor || null,
+        color_name: it.color || null,
         quantity: it.qty,
         price: it.price,
       }))
