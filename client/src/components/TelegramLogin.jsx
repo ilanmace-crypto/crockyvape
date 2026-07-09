@@ -1,9 +1,10 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import ApiService from '../services/api'
 
 export default function TelegramLogin({ onLogin }) {
   const [user, setUser] = useState(null)
   const [loading, setLoading] = useState(true)
+  const widgetContainerRef = useRef(null)
 
   useEffect(() => {
     const autoLoginFromTelegram = async (telegramData) => {
@@ -24,6 +25,15 @@ export default function TelegramLogin({ onLogin }) {
 
     // Проверяем, есть ли сохраненный пользователь
     const savedUser = localStorage.getItem('telegram_user')
+    const tgWebApp = window.Telegram?.WebApp
+    const initDataUnsafe = tgWebApp?.initDataUnsafe
+
+    console.log('TelegramLogin mount', {
+      savedUser: savedUser ? true : false,
+      initDataUnsafe: initDataUnsafe ?? null,
+      botUsername: process.env.VITE_TELEGRAM_BOT_USERNAME,
+    })
+
     if (savedUser) {
       try {
         const parsed = JSON.parse(savedUser)
@@ -34,14 +44,20 @@ export default function TelegramLogin({ onLogin }) {
       }
     }
 
-    const tgWebApp = window.Telegram?.WebApp
-    if (!savedUser && tgWebApp?.initDataUnsafe?.user && tgWebApp?.initDataUnsafe?.hash) {
-      autoLoginFromTelegram(tgWebApp.initDataUnsafe).then((ok) => {
+    if (!savedUser && initDataUnsafe?.user && initDataUnsafe?.hash) {
+      console.log('Telegram initDataUnsafe detected, attempting auto-login', initDataUnsafe)
+      autoLoginFromTelegram(initDataUnsafe).then((ok) => {
         if (!ok) {
           setLoading(false)
         }
       })
     } else {
+      if (!savedUser && tgWebApp) {
+        console.warn('Telegram WebApp detected, but initDataUnsafe is missing or incomplete', initDataUnsafe)
+      }
+      if (!savedUser && !tgWebApp) {
+        console.warn('Telegram WebApp not detected; user cannot be auto-logged in without WebApp context')
+      }
       setLoading(false)
     }
 
@@ -94,20 +110,44 @@ export default function TelegramLogin({ onLogin }) {
     )
   }
 
-  const botUsername = process.env.VITE_TELEGRAM_BOT_USERNAME || 'your_bot_username'
+  const botUsername = process.env.VITE_TELEGRAM_BOT_USERNAME || 'zakazminskbot'
+
+  useEffect(() => {
+    if (!widgetContainerRef.current) return
+
+    const existingScript = document.getElementById('telegram-login-widget-script')
+    if (existingScript) {
+      existingScript.remove()
+    }
+
+    const script = document.createElement('script')
+    script.id = 'telegram-login-widget-script'
+    script.async = true
+    script.src = 'https://telegram.org/js/telegram-widget.js?22'
+    script.setAttribute('data-telegram-login', botUsername)
+    script.setAttribute('data-size', 'large')
+    script.setAttribute('data-radius', '8')
+    script.setAttribute('data-request-access', 'write')
+    script.setAttribute('data-onauth', 'onTelegramAuth(user)')
+
+    widgetContainerRef.current.appendChild(script)
+
+    return () => {
+      if (widgetContainerRef.current) {
+        widgetContainerRef.current.innerHTML = ''
+      }
+    }
+  }, [botUsername])
 
   return (
     <div className="telegram-login-container">
-      <div id="telegram-login-widget"></div>
-      <script
-        async
-        src={`https://telegram.org/js/telegram-widget.js?22`}
-        data-telegram-login={botUsername}
-        data-size="large"
-        data-radius="8"
-        data-request-access="write"
-        data-onauth="onTelegramAuth(user)"
-      ></script>
+      <div className="telegram-login-notice">
+        <div style={{ marginBottom: '8px', fontWeight: 600 }}>Войдите через Telegram</div>
+        <div style={{ fontSize: '13px', color: '#666' }}>
+          Чтобы сайт узнал вас и сохранил ваш Telegram-аккаунт, нажмите кнопку ниже.
+        </div>
+      </div>
+      <div ref={widgetContainerRef} id="telegram-login-widget"></div>
     </div>
   )
 }
