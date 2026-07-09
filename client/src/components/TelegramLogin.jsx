@@ -6,6 +6,22 @@ export default function TelegramLogin({ onLogin }) {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
+    const autoLoginFromTelegram = async (telegramData) => {
+      try {
+        const response = await ApiService.post('/auth/telegram', telegramData)
+        if (response.success) {
+          setUser(response.user)
+          localStorage.setItem('telegram_user', JSON.stringify(response.user))
+          localStorage.setItem('telegram_token', response.token)
+          onLogin(response.user)
+          return true
+        }
+      } catch (error) {
+        console.warn('Auto Telegram auth failed:', error)
+      }
+      return false
+    }
+
     // Проверяем, есть ли сохраненный пользователь
     const savedUser = localStorage.getItem('telegram_user')
     if (savedUser) {
@@ -17,7 +33,17 @@ export default function TelegramLogin({ onLogin }) {
         localStorage.removeItem('telegram_user')
       }
     }
-    setLoading(false)
+
+    const tgWebApp = window.Telegram?.WebApp
+    if (!savedUser && tgWebApp?.initDataUnsafe?.user && tgWebApp?.initDataUnsafe?.hash) {
+      autoLoginFromTelegram(tgWebApp.initDataUnsafe).then((ok) => {
+        if (!ok) {
+          setLoading(false)
+        }
+      })
+    } else {
+      setLoading(false)
+    }
 
     // Обработка callback от Telegram Widget
     window.onTelegramAuth = async (telegramUser) => {

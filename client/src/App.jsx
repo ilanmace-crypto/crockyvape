@@ -62,7 +62,7 @@ function CheckoutModal({ open, onClose, onSubmit, submitting }) {
 
         <div className="modal-body">
           <div className="section" style={{ marginBottom: '20px' }}>
-            <div className="section-title" style={{ color: 'var(--text)', marginBottom: '8px', display: 'block' }}>Твой Telegram Username</div>
+            <div className="section-title" style={{ color: 'var(--text)', marginBottom: '8px', display: 'block' }}>Telegram Username (необязательно)</div>
             <input
               type="text"
               className="input"
@@ -857,12 +857,6 @@ function MainApp() {
       return
     }
 
-    // Проверка авторизации
-    if (!currentUser) {
-      alert('Необходимо авторизоваться через Telegram для оформления заказа')
-      return
-    }
-
     // Проверка интернет соединения
     if (!navigator.onLine) {
       alert('Нет подключения к интернету. Проверь соединение и попробуй снова.')
@@ -884,17 +878,21 @@ function MainApp() {
       const payload = {
         total_amount,
         items,
-        telegram_user: {
+      }
+
+      const headers = {}
+      if (currentUser) {
+        payload.telegram_user = {
           telegram_id: currentUser.telegram_id,
           telegram_username: currentUser.telegram_username,
           telegram_first_name: currentUser.telegram_first_name,
           telegram_last_name: currentUser.telegram_last_name,
-        },
-      }
-
-      // Добавляем заголовок с telegram_id для проверки блокировки
-      const headers = {
-        'X-Telegram-ID': currentUser.telegram_id
+        }
+        headers['X-Telegram-ID'] = currentUser.telegram_id
+      } else if (telegram_username?.trim()) {
+        payload.telegram_user = {
+          telegram_username: telegram_username.trim(),
+        }
       }
 
       const res = await ApiService.createOrder(payload, headers)

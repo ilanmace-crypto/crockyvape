@@ -86,7 +86,7 @@ const app = express();
       `
       CREATE TABLE IF NOT EXISTS orders (
         id SERIAL PRIMARY KEY,
-        user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
         total_amount DECIMAL(10,2) NOT NULL,
         status VARCHAR(20) DEFAULT 'pending',
         delivery_address TEXT,
@@ -95,6 +95,13 @@ const app = express();
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
+    `
+    );
+
+    await pool.query(
+      `
+      ALTER TABLE orders
+      ALTER COLUMN user_id DROP NOT NULL
     `
     );
 
@@ -253,14 +260,14 @@ const parseDataUrlImage = (value) => {
 
 const sendTelegramMessage = async (text, extra = {}) => {
   try {
-    const token = process.env.TELEGRAM_BOT_TOKEN;
+    const token = process.env.TELEGRAM_NOTIFY_BOT_TOKEN || process.env.TELEGRAM_BOT_TOKEN;
     const resolvedChatId =
       (extra && typeof extra === 'object' && (extra.chat_id !== undefined && extra.chat_id !== null)
         ? extra.chat_id
         : null);
     const chatId = resolvedChatId || process.env.TELEGRAM_GROUP_CHAT_ID || process.env.TELEGRAM_ADMIN_CHAT_ID;
     if (!token || !chatId) {
-      return { ok: false, error: 'Missing TELEGRAM_BOT_TOKEN or TELEGRAM_(GROUP|ADMIN)_CHAT_ID' };
+      return { ok: false, error: 'Missing TELEGRAM_NOTIFY_BOT_TOKEN or TELEGRAM_BOT_TOKEN, and TELEGRAM_(GROUP|ADMIN)_CHAT_ID' };
     }
 
     const url = `https://api.telegram.org/bot${token}/sendMessage`;
@@ -490,18 +497,27 @@ app.get('/api/debug', (req, res) => {
 app.post('/api/auth/telegram', (req, res) => {
   (async () => {
     try {
-      const { id, first_name, last_name, username, hash } = req.body;
-      const botToken = process.env.TELEGRAM_BOT_TOKEN;
+      await ensureSchemaReady();
+      const rawData = req.body || {};
+      const userData = rawData.user || {};
+      const authPayload = {
+        ...rawData,
+        ...userData,
+      };
+      delete authPayload.user;
+
+      const { id, first_name, last_name, username, hash } = authPayload;
+      const botToken = process.env.TELEGRAM_AUTH_BOT_TOKEN || process.env.TELEGRAM_BOT_TOKEN;
 
       if (!botToken) {
-        return res.status(500).json({ error: 'Telegram bot token not configured' });
+        return res.status(500).json({ error: 'Telegram auth bot token not configured' });
       }
 
       if (!id || !hash) {
         return res.status(400).json({ error: 'Missing required Telegram data' });
       }
 
-      if (!verifyTelegramData(req.body, botToken)) {
+      if (!verifyTelegramData(authPayload, botToken)) {
         return res.status(401).json({ error: 'Invalid Telegram data' });
       }
 
@@ -529,6 +545,10 @@ app.post('/api/auth/telegram', (req, res) => {
           [id.toString(), username || null, first_name || null, last_name || null]
         );
         user = result.rows[0];
+      }
+
+      if (user.is_blocked) {
+        return res.status(403).json({ error: 'User is blocked' });
       }
 
       const token = crypto.randomBytes(32).toString('hex');
@@ -658,6 +678,8 @@ const createOrder = async (req, res) => {
       ? Number(total_amount)
       : computedTotalAmount;
 
+    await ensureSchemaReady();
+    await ensureSchemaReady();
     const client = await pool.connect();
     try {
       await client.query('BEGIN');
@@ -665,18 +687,26 @@ const createOrder = async (req, res) => {
       let resolvedUserId = user_id !== undefined && user_id !== null && String(user_id).trim() !== ''
         ? String(user_id)
         : null;
+      const tgId = telegram_user?.telegram_id ? String(telegram_user.telegram_id).trim() : null;
+      const tgUsername = telegram_user?.telegram_username ? String(telegram_user.telegram_username).trim() : null;
 
-      if (!resolvedUserId) {
-        const tgId = telegram_user?.telegram_id ? String(telegram_user.telegram_id) : null;
-        if (!tgId) {
-          return res.status(400).json({
-            error: 'Missing user',
-            details: 'user_id or telegram_user.telegram_id is required',
-          });
+      if (resolvedUserId) {
+        const existingById = await client.query('SELECT id, is_blocked FROM users WHERE id = $1', [resolvedUserId]);
+        if (existingById.rows.length === 0) {
+          await client.query('ROLLBACK');
+          return res.status(400).json({ error: 'Invalid user_id' });
         }
-
-        const existing = await client.query('SELECT id FROM users WHERE telegram_id = $1', [tgId]);
+        if (existingById.rows[0].is_blocked) {
+          await client.query('ROLLBACK');
+          return res.status(403).json({ error: 'User is blocked' });
+        }
+      } else if (tgId) {
+        const existing = await client.query('SELECT id, is_blocked FROM users WHERE telegram_id = $1', [tgId]);
         if (existing.rows.length > 0) {
+          if (existing.rows[0].is_blocked) {
+            await client.query('ROLLBACK');
+            return res.status(403).json({ error: 'User is blocked' });
+          }
           resolvedUserId = existing.rows[0].id;
           await client.query(
             'UPDATE users SET telegram_username = $1, telegram_first_name = $2, telegram_last_name = $3, phone = $4, updated_at = NOW() WHERE id = $5',
@@ -701,6 +731,20 @@ const createOrder = async (req, res) => {
           );
           resolvedUserId = created.rows[0].id;
         }
+      } else if (tgUsername) {
+        const existingByUsername = await client.query(
+          'SELECT id, is_blocked FROM users WHERE telegram_username = $1 ORDER BY created_at DESC LIMIT 1',
+          [tgUsername]
+        );
+        if (existingByUsername.rows.length > 0) {
+          if (existingByUsername.rows[0].is_blocked) {
+            await client.query('ROLLBACK');
+            return res.status(403).json({ error: 'User is blocked' });
+          }
+          resolvedUserId = existingByUsername.rows[0].id;
+        }
+      } else {
+        resolvedUserId = null; // guest checkout without Telegram auth
       }
 
       const orderResult = await client.query(

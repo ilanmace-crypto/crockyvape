@@ -26,10 +26,10 @@ const verifyTelegramData = (data, botToken) => {
 router.post('/telegram', async (req, res) => {
   try {
     const { id, first_name, last_name, username, auth_date, hash } = req.body;
-    const botToken = process.env.TELEGRAM_BOT_TOKEN;
+    const botToken = process.env.TELEGRAM_AUTH_BOT_TOKEN || process.env.TELEGRAM_BOT_TOKEN;
     
     if (!botToken) {
-      return res.status(500).json({ error: 'Telegram bot token not configured' });
+      return res.status(500).json({ error: 'Telegram auth bot token not configured' });
     }
     
     if (!id || !hash) {

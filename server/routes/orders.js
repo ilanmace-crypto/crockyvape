@@ -6,7 +6,7 @@ const pool = require('../config/supabase');
 
 const sendTelegramMessage = async (text) => {
   try {
-    const token = process.env.TELEGRAM_BOT_TOKEN;
+    const token = process.env.TELEGRAM_NOTIFY_BOT_TOKEN || process.env.TELEGRAM_BOT_TOKEN;
     const chatId = process.env.TELEGRAM_GROUP_CHAT_ID || process.env.TELEGRAM_ADMIN_CHAT_ID;
     if (!token || !chatId) return;
 

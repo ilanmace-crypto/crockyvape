@@ -54,15 +54,6 @@ app.get('/', (req, res) => {
   res.sendFile('index.html', { root: '.' });
 });
 
-// Catch-all handler for React Router
-app.get('*', (req, res) => {
-  // Don't intercept API routes
-  if (req.path.startsWith('/api') || req.path.startsWith('/admin') || req.path === '/health') {
-    return res.status(404).json({ error: 'Route not found' });
-  }
-  res.sendFile('index.html', { root: '.' });
-});
-
 // Global error handler
 app.use((err, req, res, next) => {
   console.error('Global error:', err);
@@ -130,10 +121,10 @@ app.get('/api/debug', (req, res) => {
 app.post('/api/auth/telegram', async (req, res) => {
   try {
     const { id, first_name, last_name, username, auth_date, hash } = req.body;
-    const botToken = process.env.TELEGRAM_BOT_TOKEN;
+    const botToken = process.env.TELEGRAM_AUTH_BOT_TOKEN || process.env.TELEGRAM_BOT_TOKEN;
 
     if (!botToken) {
-      return res.status(500).json({ error: 'Telegram bot token not configured' });
+      return res.status(500).json({ error: 'Telegram auth bot token not configured' });
     }
 
     if (!id || !hash) {
