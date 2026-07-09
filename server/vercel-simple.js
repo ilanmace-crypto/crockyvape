@@ -77,6 +77,13 @@ const app = express();
 
     await pool.query(
       `
+      ALTER TABLE users
+      ADD COLUMN IF NOT EXISTS is_blocked BOOLEAN DEFAULT FALSE
+    `
+    );
+
+    await pool.query(
+      `
       CREATE TABLE IF NOT EXISTS orders (
         id SERIAL PRIMARY KEY,
         user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -352,6 +359,18 @@ const renderIndexHtml = (res) => {
   next();
  };
 
+const verifyTelegramData = (data, botToken) => {
+  const { hash, ...authData } = data;
+  const dataCheckString = Object.keys(authData)
+    .sort()
+    .map((key) => `${key}=${authData[key]}`)
+    .join('\n');
+
+  const secretKey = crypto.createHash('sha256').update(botToken).digest();
+  const hmac = crypto.createHmac('sha256', secretKey).update(dataCheckString).digest('hex');
+  return hmac === hash;
+};
+
 // Set CSP headers
 app.use((req, res, next) => {
   res.setHeader(
@@ -466,6 +485,70 @@ app.get('/api/debug', (req, res) => {
       cwd: process.cwd(),
     }
   });
+});
+
+app.post('/api/auth/telegram', (req, res) => {
+  (async () => {
+    try {
+      const { id, first_name, last_name, username, hash } = req.body;
+      const botToken = process.env.TELEGRAM_BOT_TOKEN;
+
+      if (!botToken) {
+        return res.status(500).json({ error: 'Telegram bot token not configured' });
+      }
+
+      if (!id || !hash) {
+        return res.status(400).json({ error: 'Missing required Telegram data' });
+      }
+
+      if (!verifyTelegramData(req.body, botToken)) {
+        return res.status(401).json({ error: 'Invalid Telegram data' });
+      }
+
+      await ensureSchemaReady();
+      const existingUser = await pool.query('SELECT * FROM users WHERE telegram_id = $1', [id.toString()]);
+      let user;
+
+      if (existingUser.rows.length > 0) {
+        const result = await pool.query(
+          `UPDATE users
+           SET telegram_username = $1,
+               telegram_first_name = $2,
+               telegram_last_name = $3,
+               updated_at = NOW()
+           WHERE telegram_id = $4
+           RETURNING *`,
+          [username || null, first_name || null, last_name || null, id.toString()]
+        );
+        user = result.rows[0];
+      } else {
+        const result = await pool.query(
+          `INSERT INTO users (telegram_id, telegram_username, telegram_first_name, telegram_last_name)
+           VALUES ($1, $2, $3, $4)
+           RETURNING *`,
+          [id.toString(), username || null, first_name || null, last_name || null]
+        );
+        user = result.rows[0];
+      }
+
+      const token = crypto.randomBytes(32).toString('hex');
+      res.json({
+        success: true,
+        user: {
+          id: user.id,
+          telegram_id: user.telegram_id,
+          telegram_username: user.telegram_username,
+          telegram_first_name: user.telegram_first_name,
+          telegram_last_name: user.telegram_last_name,
+          is_blocked: user.is_blocked || false
+        },
+        token
+      });
+    } catch (error) {
+      console.error('Telegram auth error:', error);
+      res.status(500).json({ error: 'Authentication failed' });
+    }
+  })();
 });
 
 // Products
@@ -1245,6 +1328,55 @@ app.put('/api/admin/reviews/:id', requireAdminAuth, (req, res) => {
     } catch (error) {
       console.error('Update review error:', error);
       res.status(500).json({ error: 'Failed to update review' });
+    }
+  })();
+});
+
+app.get('/api/admin/users', requireAdminAuth, (req, res) => {
+  (async () => {
+    try {
+      await ensureSchemaReady();
+      const result = await pool.query(
+        `SELECT id, telegram_id, telegram_username, telegram_first_name, telegram_last_name, phone, created_at, updated_at, COALESCE(is_blocked, false) as is_blocked
+         FROM users
+         ORDER BY created_at DESC`
+      );
+      res.json(result.rows);
+    } catch (error) {
+      console.error('Admin users error:', error);
+      res.status(500).json({ error: 'Failed to fetch users' });
+    }
+  })();
+});
+
+app.put('/api/admin/users/:id/block', requireAdminAuth, (req, res) => {
+  (async () => {
+    try {
+      await ensureSchemaReady();
+      await pool.query(
+        `UPDATE users SET is_blocked = TRUE, updated_at = NOW() WHERE id = $1`,
+        [req.params.id]
+      );
+      res.json({ message: 'User blocked' });
+    } catch (error) {
+      console.error('Block user error:', error);
+      res.status(500).json({ error: 'Failed to block user' });
+    }
+  })();
+});
+
+app.put('/api/admin/users/:id/unblock', requireAdminAuth, (req, res) => {
+  (async () => {
+    try {
+      await ensureSchemaReady();
+      await pool.query(
+        `UPDATE users SET is_blocked = FALSE, updated_at = NOW() WHERE id = $1`,
+        [req.params.id]
+      );
+      res.json({ message: 'User unblocked' });
+    } catch (error) {
+      console.error('Unblock user error:', error);
+      res.status(500).json({ error: 'Failed to unblock user' });
     }
   })();
 });
