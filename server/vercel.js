@@ -157,8 +157,8 @@ const sendTelegramMessage = async (text, extra = {}, botTokenOverride = null) =>
 };
 
 app.post('/api/debug/telegram/catalog', async (req, res) => {
-  const fallbackUrl = process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'https://crockyvape.vercel.app/';
-  const catalogUrl = String(req.body?.url || process.env.PUBLIC_BASE_URL || fallbackUrl).trim();
+  const fallbackUrl = process.env.PUBLIC_BASE_URL || 'https://paradise-shop-new.vercel.app/';
+  const catalogUrl = String(req.body?.url || fallbackUrl).trim();
   const chatIdOverrideRaw = req.body?.chat_id;
   const chatIdOverride =
     chatIdOverrideRaw === undefined || chatIdOverrideRaw === null || String(chatIdOverrideRaw).trim() === ''
