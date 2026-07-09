@@ -49,8 +49,7 @@ const AdminPanel = ({ onLogout }) => {
     loadProducts();
     loadStats();
     loadReviews();
-    // Временно убираем загрузку пользователей до исправления
-    // loadUsers();
+    loadUsers();
   }, []);
 
   const getTokenOrLogout = () => {

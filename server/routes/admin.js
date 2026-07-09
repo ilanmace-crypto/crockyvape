@@ -128,12 +128,12 @@ router.post('/login', async (req, res) => {
 router.get('/users', authenticateToken, async (req, res) => {
   try {
     const users = await pool.query(`
-      SELECT u.*,
+      SELECT u.id, u.telegram_id, u.telegram_username, u.telegram_first_name, u.telegram_last_name, u.created_at,
              COUNT(o.id) as orders_count,
              COALESCE(SUM(o.total_amount), 0) as total_spent
       FROM users u
       LEFT JOIN orders o ON u.id = o.user_id
-      GROUP BY u.id
+      GROUP BY u.id, u.telegram_id, u.telegram_username, u.telegram_first_name, u.telegram_last_name, u.created_at
       ORDER BY u.created_at DESC
     `);
     res.json(users.rows);
