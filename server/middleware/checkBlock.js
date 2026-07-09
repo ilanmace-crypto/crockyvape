@@ -11,18 +11,18 @@ const checkUserBlocked = async (req, res, next) => {
       return next();
     }
     
-    // Временно убираем проверку блокировки до миграции базы
-    // const result = await pool.query(
-    //   'SELECT is_blocked FROM users WHERE telegram_id = $1',
-    //   [telegramId.toString()]
-    // );
+    // Проверяем, заблокирован ли пользователь
+    const result = await pool.query(
+      'SELECT is_blocked FROM users WHERE telegram_id = $1',
+      [telegramId.toString()]
+    );
     
-    // if (result.rows.length > 0 && result.rows[0].is_blocked) {
-    //   return res.status(403).json({ 
-    //     error: 'Access denied',
-    //     message: 'User is blocked' 
-    //   });
-    // }
+    if (result.rows.length > 0 && result.rows[0].is_blocked) {
+      return res.status(403).json({ 
+        error: 'Access denied',
+        message: 'User is blocked' 
+      });
+    }
     
     next();
   } catch (error) {
@@ -59,13 +59,13 @@ const requireAuth = async (req, res, next) => {
     
     const user = result.rows[0];
     
-    // Временно убираем проверку блокировки до миграции базы
-    // if (user.is_blocked) {
-    //   return res.status(403).json({ 
-    //     error: 'Access denied',
-    //     message: 'User is blocked' 
-    //   });
-    // }
+    // Проверяем блокировку
+    if (user.is_blocked) {
+      return res.status(403).json({ 
+        error: 'Access denied',
+        message: 'User is blocked' 
+      });
+    }
     
     // Добавляем пользователя в запрос
     req.user = user;

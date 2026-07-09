@@ -1,5 +1,6 @@
 const express = require('express');
 const cors = require('cors');
+const crypto = require('crypto');
 require('dotenv').config();
 
 // Подключаем Neon базу данных с обработкой ошибок
@@ -102,6 +103,19 @@ app.get('/health', async (req, res) => {
   }
 });
 
+// Проверка данных от Telegram Widget
+const verifyTelegramData = (data, botToken) => {
+  const { hash, ...authData } = data;
+  const dataCheckString = Object.keys(authData)
+    .sort()
+    .map(key => `${key}=${authData[key]}`)
+    .join('\n');
+
+  const secretKey = crypto.createHash('sha256').update(botToken).digest();
+  const hmac = crypto.createHmac('sha256', secretKey).update(dataCheckString).digest('hex');
+  return hmac === hash;
+};
+
 // Debug endpoint
 app.get('/api/debug', (req, res) => {
   res.json({
@@ -110,6 +124,68 @@ app.get('/api/debug', (req, res) => {
     environment: process.env.NODE_ENV,
     has_db: !!process.env.DATABASE_URL
   });
+});
+
+// Telegram auth endpoint
+app.post('/api/auth/telegram', async (req, res) => {
+  try {
+    const { id, first_name, last_name, username, auth_date, hash } = req.body;
+    const botToken = process.env.TELEGRAM_BOT_TOKEN;
+
+    if (!botToken) {
+      return res.status(500).json({ error: 'Telegram bot token not configured' });
+    }
+
+    if (!id || !hash) {
+      return res.status(400).json({ error: 'Missing required Telegram data' });
+    }
+
+    if (!verifyTelegramData(req.body, botToken)) {
+      return res.status(401).json({ error: 'Invalid Telegram data' });
+    }
+
+    const existingUser = await pool.query(
+      'SELECT * FROM users WHERE telegram_id = $1',
+      [id.toString()]
+    );
+
+    let user;
+    if (existingUser.rows.length > 0) {
+      const updatedUser = await pool.query(`
+        UPDATE users
+        SET telegram_username = $1,
+            telegram_first_name = $2,
+            telegram_last_name = $3,
+            updated_at = NOW()
+        WHERE telegram_id = $4
+        RETURNING *
+      `, [username || null, first_name || null, last_name || null, id.toString()]);
+      user = updatedUser.rows[0];
+    } else {
+      const newUser = await pool.query(`
+        INSERT INTO users (telegram_id, telegram_username, telegram_first_name, telegram_last_name)
+        VALUES ($1, $2, $3, $4)
+        RETURNING *
+      `, [id.toString(), username || null, first_name || null, last_name || null]);
+      user = newUser.rows[0];
+    }
+
+    const token = crypto.randomBytes(32).toString('hex');
+    res.json({
+      success: true,
+      user: {
+        id: user.id,
+        telegram_id: user.telegram_id,
+        telegram_username: user.telegram_username,
+        telegram_first_name: user.telegram_first_name,
+        telegram_last_name: user.telegram_last_name
+      },
+      token
+    });
+  } catch (error) {
+    console.error('Telegram auth error:', error);
+    res.status(500).json({ error: 'Authentication failed' });
+  }
 });
 
 // GET /api/products-debug - debug products API
@@ -301,6 +377,93 @@ app.post('/api/orders', async (req, res) => {
   } catch (error) {
     console.error('Order creation error:', error);
     res.status(500).json({ error: 'Failed to create order', details: error.message });
+  }
+});
+
+// Admin stats endpoint
+app.get('/api/admin/stats', async (req, res) => {
+  try {
+    const ordersResult = await pool.query(`
+      SELECT COUNT(*) as total_orders,
+             COALESCE(SUM(total_amount), 0) as total_revenue,
+             COUNT(CASE WHEN status = 'completed' THEN 1 END) as completed_orders,
+             COUNT(CASE WHEN status = 'pending' THEN 1 END) as pending_orders
+      FROM orders
+    `);
+    const usersCount = await pool.query('SELECT COUNT(*) as count FROM users');
+    const productsCount = await pool.query('SELECT COUNT(*) as count FROM products');
+    const reviewsCount = await pool.query('SELECT COUNT(*) as count FROM reviews');
+
+    res.json({
+      orders: ordersResult.rows[0],
+      users: usersCount.rows[0],
+      products: productsCount.rows[0],
+      reviews: reviewsCount.rows[0]
+    });
+  } catch (error) {
+    console.error('Admin stats error:', error);
+    res.status(500).json({ error: 'Failed to fetch stats' });
+  }
+});
+
+// Admin reviews endpoints
+app.get('/api/admin/reviews', async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT r.*, p.name as product_name, u.telegram_username
+      FROM reviews r
+      LEFT JOIN products p ON r.product_id = p.id
+      LEFT JOIN users u ON r.user_id = u.id
+      ORDER BY r.created_at DESC
+    `);
+    res.json(result.rows);
+  } catch (error) {
+    console.error('Admin reviews error:', error);
+    res.status(500).json({ error: 'Failed to fetch reviews' });
+  }
+});
+
+app.put('/api/admin/reviews/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { is_approved } = req.body;
+    await pool.query('UPDATE reviews SET is_approved = $1, updated_at = NOW() WHERE id = $2', [is_approved, id]);
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Admin review update error:', error);
+    res.status(500).json({ error: 'Failed to update review' });
+  }
+});
+
+app.get('/api/admin/users', async (req, res) => {
+  try {
+    const result = await pool.query('SELECT * FROM users ORDER BY created_at DESC');
+    res.json(result.rows);
+  } catch (error) {
+    console.error('Admin users error:', error);
+    res.status(500).json({ error: 'Failed to fetch users' });
+  }
+});
+
+app.put('/api/admin/users/:id/block', async (req, res) => {
+  try {
+    const { id } = req.params;
+    await pool.query('UPDATE users SET updated_at = NOW() WHERE id = $1', [id]);
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Admin block user error:', error);
+    res.status(500).json({ error: 'Failed to block user' });
+  }
+});
+
+app.put('/api/admin/users/:id/unblock', async (req, res) => {
+  try {
+    const { id } = req.params;
+    await pool.query('UPDATE users SET updated_at = NOW() WHERE id = $1', [id]);
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Admin unblock user error:', error);
+    res.status(500).json({ error: 'Failed to unblock user' });
   }
 });
 
