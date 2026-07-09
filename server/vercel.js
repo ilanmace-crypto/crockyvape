@@ -176,16 +176,27 @@ app.post('/api/debug/telegram/catalog', async (req, res) => {
     process.env.TELEGRAM_ADMIN_CHAT_ID ||
     DEFAULT_TELEGRAM_CATALOG_CHAT_ID;
 
-  const replyMarkup = {
+  const replyMarkupWebApp = JSON.stringify({
     inline_keyboard: [
       [
         {
-          text: 'Каталог',
+          text: '🌟 Открыть каталог',
           web_app: { url: catalogUrl }
         }
       ]
     ]
-  };
+  });
+
+  const replyMarkupUrl = JSON.stringify({
+    inline_keyboard: [
+      [
+        {
+          text: '🌟 Открыть каталог',
+          url: catalogUrl
+        }
+      ]
+    ]
+  });
 
   const catalogBotToken =
     process.env.TELEGRAM_CATALOG_BOT_TOKEN ||
@@ -193,15 +204,27 @@ app.post('/api/debug/telegram/catalog', async (req, res) => {
     process.env.TELEGRAM_NOTIFY_BOT_TOKEN ||
     process.env.TELEGRAM_BOT_TOKEN;
 
-  const result = await sendTelegramMessage(
-    `🛒 <b>Каталог CROCKYVAPE</b>\n\nОткройте каталог нажатием на кнопку ниже.`,
+  let result = await sendTelegramMessage(
+    `🛒 <b>Каталог CROCKYVAPE</b>\n\nНажми кнопку ниже, чтобы открыть каталог прямо в Telegram.`,
     {
       chat_id: targetChatId,
-      disable_web_page_preview: false,
-      reply_markup: JSON.stringify(replyMarkup),
+      disable_web_page_preview: true,
+      reply_markup: replyMarkupWebApp,
     },
     catalogBotToken
   );
+
+  if (!result?.ok && result.telegram?.description?.includes('BUTTON_TYPE_INVALID')) {
+    result = await sendTelegramMessage(
+      `🛒 <b>Каталог CROCKYVAPE</b>\n\nНажми кнопку ниже, чтобы открыть каталог прямо в Telegram.`,
+      {
+        chat_id: targetChatId,
+        disable_web_page_preview: true,
+        reply_markup: replyMarkupUrl,
+      },
+      catalogBotToken
+    );
+  }
 
   if (!result?.ok) {
     return res.status(500).json({ ok: false, result });
