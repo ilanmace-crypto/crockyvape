@@ -100,6 +100,27 @@ class ApiService {
     }
   }
 
+  // Универсальный POST метод
+  static async post(endpoint, data) {
+    try {
+      const response = await fetch(`${API_BASE}${endpoint}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data),
+      });
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || `HTTP ${response.status}: ${response.statusText}`);
+      }
+      return await response.json();
+    } catch (error) {
+      console.error('POST request error:', error);
+      throw error;
+    }
+  }
+
   // Создание заказа
   static async createOrder(orderData, customHeaders = {}) {
     try {
