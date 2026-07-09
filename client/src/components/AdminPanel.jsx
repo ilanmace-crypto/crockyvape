@@ -49,7 +49,7 @@ const AdminPanel = ({ onLogout }) => {
     loadProducts();
     loadStats();
     loadReviews();
-    loadUsers();
+    // loadUsers();
   }, []);
 
   const getTokenOrLogout = () => {

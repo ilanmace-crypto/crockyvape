@@ -124,20 +124,20 @@ router.post('/login', async (req, res) => {
   }
 });
 
-// Получение всех пользователей (для админа) - упрощенная версия без JOIN
-router.get('/users', authenticateToken, async (req, res) => {
-  try {
-    const users = await pool.query(`
-      SELECT id, telegram_id, telegram_username, telegram_first_name, telegram_last_name, created_at
-      FROM users
-      ORDER BY created_at DESC
-    `);
-    res.json(users.rows);
-  } catch (error) {
-    console.error('Users error:', error);
-    res.status(500).json({ error: 'Internal server error' });
-  }
-});
+// Получение всех пользователей (для админа) - временно полностью отключено
+// router.get('/users', authenticateToken, async (req, res) => {
+//   try {
+//     const users = await pool.query(`
+//       SELECT id, telegram_id, telegram_username, telegram_first_name, telegram_last_name, created_at
+//       FROM users
+//       ORDER BY created_at DESC
+//     `);
+//     res.json(users.rows);
+//   } catch (error) {
+//     console.error('Users error:', error);
+//     res.status(500).json({ error: 'Internal server error' });
+//   }
+// });
 
 // Блокировка пользователя
 router.put('/users/:id/block', authenticateToken, async (req, res) => {
