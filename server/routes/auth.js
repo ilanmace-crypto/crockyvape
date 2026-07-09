@@ -53,10 +53,10 @@ router.post('/telegram', async (req, res) => {
     if (existingUser.rows.length > 0) {
       user = existingUser.rows[0];
       
-      // Проверяем, не заблокирован ли пользователь
-      if (user.is_blocked) {
-        return res.status(403).json({ error: 'User is blocked' });
-      }
+      // Временно убираем проверку блокировки до миграции базы
+      // if (user.is_blocked) {
+      //   return res.status(403).json({ error: 'User is blocked' });
+      // }
       
       // Обновляем данные пользователя
       const updatedUser = await pool.query(`
