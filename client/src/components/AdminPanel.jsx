@@ -49,7 +49,7 @@ const AdminPanel = ({ onLogout }) => {
     loadProducts();
     loadStats();
     loadReviews();
-    // loadUsers();
+    loadUsers();
   }, []);
 
   const getTokenOrLogout = () => {
@@ -544,8 +544,6 @@ const AdminPanel = ({ onLogout }) => {
                   <p className="category">
                     {user.telegram_first_name} {user.telegram_last_name}
                   </p>
-                  <p className="stock">Заказов: {user.orders_count || 0}</p>
-                  <p className="stock">Всего потрачено: {formatMoney(user.total_spent)} BYN</p>
                   <p style={{ color: '#888', fontSize: 12 }}>
                     Зарегистрирован: {user.created_at ? new Date(user.created_at).toLocaleString('ru-RU') : ''}
                   </p>

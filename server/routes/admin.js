@@ -124,17 +124,13 @@ router.post('/login', async (req, res) => {
   }
 });
 
-// Получение всех пользователей (для админа)
+// Получение всех пользователей (для админа) - упрощенная версия без JOIN
 router.get('/users', authenticateToken, async (req, res) => {
   try {
     const users = await pool.query(`
-      SELECT u.*,
-             COUNT(o.id) as orders_count,
-             COALESCE(SUM(o.total_amount), 0) as total_spent
-      FROM users u
-      LEFT JOIN orders o ON u.id = o.user_id
-      GROUP BY u.id
-      ORDER BY u.created_at DESC
+      SELECT id, telegram_id, telegram_username, telegram_first_name, telegram_last_name, created_at
+      FROM users
+      ORDER BY created_at DESC
     `);
     res.json(users.rows);
   } catch (error) {
