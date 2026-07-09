@@ -3,6 +3,8 @@ const cors = require('cors');
 const crypto = require('crypto');
 require('dotenv').config();
 
+const DEFAULT_TELEGRAM_CATALOG_CHAT_ID = '-1002587530415';
+
 // Подключаем Neon базу данных с обработкой ошибок
 let pool;
 try {
@@ -115,6 +117,96 @@ app.get('/api/debug', (req, res) => {
     environment: process.env.NODE_ENV,
     has_db: !!process.env.DATABASE_URL
   });
+});
+
+const sendTelegramMessage = async (text, extra = {}, botTokenOverride = null) => {
+  try {
+    const token =
+      botTokenOverride ||
+      process.env.TELEGRAM_NOTIFY_BOT_TOKEN ||
+      process.env.TELEGRAM_BOT_TOKEN;
+    const resolvedChatId =
+      extra && typeof extra === 'object' && extra.chat_id !== undefined && extra.chat_id !== null
+        ? extra.chat_id
+        : null;
+    const chatId = resolvedChatId ||
+      process.env.TELEGRAM_CATALOG_CHAT_ID ||
+      process.env.TELEGRAM_GROUP_CHAT_ID ||
+      process.env.TELEGRAM_ADMIN_CHAT_ID ||
+      DEFAULT_TELEGRAM_CATALOG_CHAT_ID;
+
+    if (!token || !chatId) {
+      return { ok: false, error: 'Missing TELEGRAM_NOTIFY_BOT_TOKEN or TELEGRAM_BOT_TOKEN, and TELEGRAM_(CATALOG|GROUP|ADMIN)_CHAT_ID' };
+    }
+
+    const url = `https://api.telegram.org/bot${token}/sendMessage`;
+    const resp = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ chat_id: chatId, text, parse_mode: 'HTML', ...(extra && typeof extra === 'object' ? extra : {}) })
+    });
+    const data = await resp.json().catch(() => null);
+    if (!resp.ok || !data?.ok) {
+      return { ok: false, status: resp.status, telegram: data };
+    }
+    return { ok: true, telegram: data };
+  } catch (e) {
+    console.error('Telegram notify error:', e);
+    return { ok: false, error: e?.message || String(e) };
+  }
+};
+
+app.post('/api/debug/telegram/catalog', async (req, res) => {
+  const fallbackUrl = process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'https://crockyvape.vercel.app/';
+  const catalogUrl = String(req.body?.url || process.env.PUBLIC_BASE_URL || fallbackUrl).trim();
+  const chatIdOverrideRaw = req.body?.chat_id;
+  const chatIdOverride =
+    chatIdOverrideRaw === undefined || chatIdOverrideRaw === null || String(chatIdOverrideRaw).trim() === ''
+      ? null
+      : String(chatIdOverrideRaw).trim();
+
+  if (!catalogUrl) {
+    return res.status(400).json({ ok: false, error: 'Missing url' });
+  }
+
+  const targetChatId =
+    chatIdOverride ||
+    process.env.TELEGRAM_CATALOG_CHAT_ID ||
+    process.env.TELEGRAM_GROUP_CHAT_ID ||
+    process.env.TELEGRAM_ADMIN_CHAT_ID ||
+    DEFAULT_TELEGRAM_CATALOG_CHAT_ID;
+
+  const replyMarkup = {
+    inline_keyboard: [
+      [
+        {
+          text: 'Каталог',
+          web_app: { url: catalogUrl }
+        }
+      ]
+    ]
+  };
+
+  const catalogBotToken =
+    process.env.TELEGRAM_CATALOG_BOT_TOKEN ||
+    process.env.TELEGRAM_AUTH_BOT_TOKEN ||
+    process.env.TELEGRAM_NOTIFY_BOT_TOKEN ||
+    process.env.TELEGRAM_BOT_TOKEN;
+
+  const result = await sendTelegramMessage(
+    `🛒 <b>Каталог CROCKYVAPE</b>\n\nОткройте каталог нажатием на кнопку ниже.`,
+    {
+      chat_id: targetChatId,
+      disable_web_page_preview: false,
+      reply_markup: JSON.stringify(replyMarkup),
+    },
+    catalogBotToken
+  );
+
+  if (!result?.ok) {
+    return res.status(500).json({ ok: false, result });
+  }
+  return res.json({ ok: true, result });
 });
 
 // Telegram auth endpoint

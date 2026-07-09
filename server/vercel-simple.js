@@ -5,6 +5,8 @@ const cors = require('cors');
  const fs = require('fs');
  require('dotenv').config();
 
+const DEFAULT_TELEGRAM_CATALOG_CHAT_ID = '-1002587530415';
+
 // Force redeploy 4
 
  // Neon Postgres pool
@@ -236,12 +238,42 @@ app.post('/api/debug/telegram', async (req, res) => {
     return res.status(400).json({ ok: false, error: 'Missing url' });
   }
 
+  const targetChatId =
+    chatIdOverride ||
+    process.env.TELEGRAM_CATALOG_CHAT_ID ||
+    process.env.TELEGRAM_GROUP_CHAT_ID ||
+    process.env.TELEGRAM_ADMIN_CHAT_ID ||
+    DEFAULT_TELEGRAM_CATALOG_CHAT_ID;
+
+  if (!targetChatId) {
+    return res.status(500).json({ ok: false, error: 'Missing target chat_id for catalog button' });
+  }
+
+  const replyMarkup = {
+    inline_keyboard: [
+      [
+        {
+          text: 'Каталог',
+          web_app: { url: catalogUrl }
+        }
+      ]
+    ]
+  };
+
+  const catalogBotToken =
+    process.env.TELEGRAM_CATALOG_BOT_TOKEN ||
+    process.env.TELEGRAM_AUTH_BOT_TOKEN ||
+    process.env.TELEGRAM_NOTIFY_BOT_TOKEN ||
+    process.env.TELEGRAM_BOT_TOKEN;
+
   const result = await sendTelegramMessage(
-    `🛒 <b>Каталог CROCKYVAPE</b>\n\nОткрыть: ${catalogUrl}`,
+    `🛒 <b>Каталог CROCKYVAPE</b>\n\nОткройте каталог нажатием на кнопку ниже.`,
     {
-      ...(chatIdOverride ? { chat_id: chatIdOverride } : {}),
+      chat_id: targetChatId,
       disable_web_page_preview: false,
-    }
+      reply_markup: JSON.stringify(replyMarkup),
+    },
+    catalogBotToken
   );
 
   if (!result?.ok) {
@@ -258,9 +290,12 @@ const parseDataUrlImage = (value) => {
   return { mime: match[1], b64: match[2] };
  };
 
-const sendTelegramMessage = async (text, extra = {}) => {
+const sendTelegramMessage = async (text, extra = {}, botTokenOverride = null) => {
   try {
-    const token = process.env.TELEGRAM_NOTIFY_BOT_TOKEN || process.env.TELEGRAM_BOT_TOKEN;
+    const token =
+      botTokenOverride ||
+      process.env.TELEGRAM_NOTIFY_BOT_TOKEN ||
+      process.env.TELEGRAM_BOT_TOKEN;
     const resolvedChatId =
       (extra && typeof extra === 'object' && (extra.chat_id !== undefined && extra.chat_id !== null)
         ? extra.chat_id
