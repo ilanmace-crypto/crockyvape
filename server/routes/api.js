@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const pool = require('../config/database');
+const { requireAuth } = require('../middleware/checkBlock');
 
 // Получение всех товаров
 router.get('/products', async (req, res) => {
@@ -218,8 +219,8 @@ router.get('/reviews', async (req, res) => {
   }
 });
 
-// Создание отзыва
-router.post('/reviews', async (req, res) => {
+// Создание отзыва (требуется авторизация)
+router.post('/reviews', requireAuth, async (req, res) => {
   try {
     const { user_id, product_id, rating, review_text, telegram_username } = req.body;
     

@@ -15,6 +15,9 @@ const AdminPanel = ({ onLogout }) => {
   const [reviews, setReviews] = useState([]);
   const [reviewsLoading, setReviewsLoading] = useState(false);
 
+  const [users, setUsers] = useState([]);
+  const [usersLoading, setUsersLoading] = useState(false);
+
   const normalizeProduct = (p) => {
     const category = Number(p?.category_id) === 1
       ? 'liquids'
@@ -46,6 +49,7 @@ const AdminPanel = ({ onLogout }) => {
     loadProducts();
     loadStats();
     loadReviews();
+    loadUsers();
   }, []);
 
   const getTokenOrLogout = () => {
@@ -164,6 +168,78 @@ const AdminPanel = ({ onLogout }) => {
       throw new Error(errBody?.error || 'Failed to update review');
     } catch (err) {
       setError(err.message);
+    }
+  };
+
+  const loadUsers = async () => {
+    setUsersLoading(true);
+    try {
+      const token = getTokenOrLogout();
+      const response = await fetch('/api/admin/users', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setUsers(Array.isArray(data) ? data : []);
+      } else if (response.status === 401) {
+        handleUnauthorized();
+      } else {
+        const errBody = await response.json().catch(() => null);
+        throw new Error(errBody?.error || 'Failed to load users');
+      }
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setUsersLoading(false);
+    }
+  };
+
+  const blockUser = async (userId) => {
+    try {
+      const token = getTokenOrLogout();
+      const response = await fetch(`/api/admin/users/${userId}/block`, {
+        method: 'PUT',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+
+      if (response.ok) {
+        await loadUsers();
+        return;
+      }
+      if (response.status === 401) {
+        handleUnauthorized();
+        return;
+      }
+      const errBody = await response.json().catch(() => null);
+      throw new Error(errBody?.error || 'Failed to block user');
+    } catch (err) {
+      setError(err.message);
+      alert('Ошибка блокировки пользователя: ' + err.message);
+    }
+  };
+
+  const unblockUser = async (userId) => {
+    try {
+      const token = getTokenOrLogout();
+      const response = await fetch(`/api/admin/users/${userId}/unblock`, {
+        method: 'PUT',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+
+      if (response.ok) {
+        await loadUsers();
+        return;
+      }
+      if (response.status === 401) {
+        handleUnauthorized();
+        return;
+      }
+      const errBody = await response.json().catch(() => null);
+      throw new Error(errBody?.error || 'Failed to unblock user');
+    } catch (err) {
+      setError(err.message);
+      alert('Ошибка разблокировки пользователя: ' + err.message);
     }
   };
 
@@ -441,8 +517,63 @@ const AdminPanel = ({ onLogout }) => {
     </div>
   );
 
+  const renderUsers = () => (
+    <div className="admin-section">
+      <div className="section-header">
+        <h3>Управление пользователями</h3>
+        <button className="admin-button" onClick={loadUsers}>Обновить</button>
+      </div>
 
-
+      {usersLoading ? (
+        <div className="loading">Загрузка пользователей...</div>
+      ) : error ? (
+        <div className="error">{error}</div>
+      ) : (
+        <div style={{ display: 'grid', gap: 12 }}>
+          {users.length === 0 ? (
+            <div className="loading">Пользователей пока нет</div>
+          ) : (
+            users.map((user) => (
+              <div key={user.id} className="product-card">
+                <div className="product-info">
+                  <h4>
+                    {user.telegram_username ? `@${user.telegram_username}` : 'Без username'}
+                    {user.is_blocked && <span style={{ color: '#ff4444', marginLeft: 8 }}>🚫 ЗАБЛОКИРОВАН</span>}
+                  </h4>
+                  <p className="price">ID: {user.telegram_id}</p>
+                  <p className="category">
+                    {user.telegram_first_name} {user.telegram_last_name}
+                  </p>
+                  <p className="stock">Заказов: {user.orders_count || 0}</p>
+                  <p className="stock">Всего потрачено: {formatMoney(user.total_spent)} BYN</p>
+                  <p style={{ color: '#888', fontSize: 12 }}>
+                    Зарегистрирован: {user.created_at ? new Date(user.created_at).toLocaleString('ru-RU') : ''}
+                  </p>
+                </div>
+                <div className="product-actions">
+                  {user.is_blocked ? (
+                    <button
+                      onClick={() => unblockUser(user.id)}
+                      className="btn-edit"
+                    >
+                      Разблокировать
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => blockUser(user.id)}
+                      className="btn-delete"
+                    >
+                      Заблокировать
+                    </button>
+                  )}
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+      )}
+    </div>
+  );
 
   return (
     <div className="admin-panel">
@@ -472,12 +603,19 @@ const AdminPanel = ({ onLogout }) => {
         >
           Отзывы
         </button>
+        <button
+          className={`admin-tab ${activeTab === 'users' ? 'active' : ''}`}
+          onClick={() => setActiveTab('users')}
+        >
+          Пользователи
+        </button>
       </div>
       
       <div className="admin-content">
         {activeTab === 'dashboard' && renderDashboard()}
         {activeTab === 'products' && renderProducts()}
         {activeTab === 'reviews' && renderReviews()}
+        {activeTab === 'users' && renderUsers()}
       </div>
     </div>
   );

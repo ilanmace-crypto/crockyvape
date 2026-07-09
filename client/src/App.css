@@ -529,3 +529,46 @@
     opacity: 0.55;
   }
 }
+
+/* Telegram Login Styles */
+.telegram-login-container {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.telegram-user-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  background: var(--surface-2);
+  border-radius: 8px;
+  border: 1px solid var(--border);
+}
+
+.telegram-user-name {
+  font-size: 13px;
+  color: var(--text);
+  font-weight: 600;
+}
+
+.telegram-logout-btn {
+  background: rgba(255, 68, 68, 0.15);
+  border: 1px solid rgba(255, 68, 68, 0.3);
+  color: #ff4444;
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-size: 11px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.telegram-logout-btn:hover {
+  background: rgba(255, 68, 68, 0.25);
+  border-color: rgba(255, 68, 68, 0.5);
+}
+
+.telegram-logout-btn:active {
+  transform: scale(0.95);
+}

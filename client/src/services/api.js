@@ -101,7 +101,7 @@ class ApiService {
   }
 
   // Создание заказа
-  static async createOrder(orderData) {
+  static async createOrder(orderData, customHeaders = {}) {
     try {
       // Проверка интернет соединения
       if (!navigator.onLine) {
@@ -112,6 +112,7 @@ class ApiService {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          ...customHeaders,
         },
         body: JSON.stringify(orderData),
         timeout: 10000, // 10 секунд таймаут
@@ -151,20 +152,24 @@ class ApiService {
   }
 
   // Создание отзыва
-  static async createReview(reviewData) {
+  static async createReview(reviewData, customHeaders = {}) {
     try {
       const response = await fetch(`${API_BASE}/reviews`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          ...customHeaders,
         },
         body: JSON.stringify(reviewData),
       });
-      if (!response.ok) throw new Error('Failed to create review');
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || 'Failed to create review');
+      }
       return await response.json();
     } catch (error) {
       console.error('Error creating review:', error);
-      return null;
+      throw error;
     }
   }
 

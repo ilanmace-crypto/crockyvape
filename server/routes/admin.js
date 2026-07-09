@@ -143,6 +143,40 @@ router.get('/users', authenticateToken, async (req, res) => {
   }
 });
 
+// Блокировка пользователя
+router.put('/users/:id/block', authenticateToken, async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    await pool.query(
+      'UPDATE users SET is_blocked = TRUE, updated_at = NOW() WHERE id = $1',
+      [id]
+    );
+    
+    res.json({ message: 'User blocked successfully' });
+  } catch (error) {
+    console.error('Block user error:', error);
+    res.status(500).json({ error: 'Failed to block user' });
+  }
+});
+
+// Разблокировка пользователя
+router.put('/users/:id/unblock', authenticateToken, async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    await pool.query(
+      'UPDATE users SET is_blocked = FALSE, updated_at = NOW() WHERE id = $1',
+      [id]
+    );
+    
+    res.json({ message: 'User unblocked successfully' });
+  } catch (error) {
+    console.error('Unblock user error:', error);
+    res.status(500).json({ error: 'Failed to unblock user' });
+  }
+});
+
 // Получение статистики
 router.get('/stats', authenticateToken, async (req, res) => {
   try {

@@ -42,6 +42,7 @@ CREATE TABLE IF NOT EXISTS users (
     telegram_first_name VARCHAR(100),
     telegram_last_name VARCHAR(100),
     phone VARCHAR(20),
+    is_blocked BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );

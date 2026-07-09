@@ -4,6 +4,7 @@ import './App.css'
 import ApiService from './services/api'
 import AdminLogin from './components/AdminLogin'
 import AdminPanel from './components/AdminPanel'
+import TelegramLogin from './components/TelegramLogin'
 
 // BUILD_v1_0_12 - Force JS hash change
 console.log('BUILD_v1_0_12');
@@ -115,7 +116,7 @@ function Header() {
   )
 }
 
-function HeaderWithCart({ cartCount, onOpenCart }) {
+function HeaderWithCart({ cartCount, onOpenCart, currentUser, onUserChange }) {
   return (
     <div className="header">
       <div className="container header-inner">
@@ -129,6 +130,7 @@ function HeaderWithCart({ cartCount, onOpenCart }) {
           </div>
         </div>
         <div className="header-actions">
+          <TelegramLogin onLogin={onUserChange} />
           <a href="#/admin" className="admin-link">Админ</a>
           <button type="button" className="cart-chip" onClick={onOpenCart}>
             Корзина {cartCount > 0 && <span className="cart-chip-badge">{cartCount}</span>}
@@ -471,7 +473,7 @@ function CartDrawer({ open, items, onClose, onDec, onInc, onRemove, onClear }) {
   )
 }
 
-function ReviewsPlaceholder() {
+function ReviewsPlaceholder({ currentUser }) {
   const [reviewForm, setReviewForm] = useState({
     username: '',
     text: '',
@@ -501,18 +503,29 @@ function ReviewsPlaceholder() {
     e.preventDefault()
     if (submitting) return
     
-    if (!reviewForm.username.trim() || !reviewForm.text.trim()) {
-      alert('Заполни все поля!')
+    // Проверка авторизации
+    if (!currentUser) {
+      alert('Необходимо авторизоваться через Telegram для оставления отзыва')
+      return
+    }
+
+    if (!reviewForm.text.trim()) {
+      alert('Напиши текст отзыва!')
       return
     }
 
     setSubmitting(true)
     try {
+      const headers = {
+        'X-Telegram-ID': currentUser.telegram_id
+      }
+
       const created = await ApiService.createReview({
-        telegram_username: reviewForm.username,
+        telegram_username: currentUser.telegram_username || currentUser.telegram_first_name,
         review_text: reviewForm.text,
         rating: reviewForm.rating,
-      })
+        user_id: currentUser.id,
+      }, headers)
 
       if (created) {
         alert('Спасибо за отзыв! 🎉 Он будет опубликован после модерации.')
@@ -526,7 +539,11 @@ function ReviewsPlaceholder() {
       }
     } catch (error) {
       console.error('Error submitting review:', error)
-      alert('Ошибка отправки отзыва')
+      if (error?.message === 'User is blocked') {
+        alert('Вы заблокированы. Обратитесь к администратору.')
+      } else {
+        alert('Ошибка отправки отзыва')
+      }
     } finally {
       setSubmitting(false)
     }
@@ -542,53 +559,55 @@ function ReviewsPlaceholder() {
         <div className="screen-title">Отзывы</div>
         <div className="panel">
           <div className="panel-title">Оставь отзыв</div>
-          <form onSubmit={handleSubmit}>
-            <input 
-              className="input" 
-              placeholder="Твой ник в Telegram" 
-              value={reviewForm.username}
-              onChange={(e) => setReviewForm(prev => ({ ...prev, username: e.target.value }))}
-              disabled={submitting}
-            />
-            <div style={{ margin: '12px 0' }}>
-              <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: '500' }}>Оценка:</label>
-              <div style={{ display: 'flex', gap: '8px' }}>
-                {[1, 2, 3, 4, 5].map(star => (
-                  <button
-                    key={star}
-                    type="button"
-                    className={`star-btn ${star <= reviewForm.rating ? 'active' : ''}`}
-                    onClick={() => setReviewForm(prev => ({ ...prev, rating: star }))}
-                    disabled={submitting}
-                    style={{ 
-                      fontSize: '24px', 
-                      background: 'none', 
-                      border: 'none', 
-                      cursor: 'pointer',
-                      opacity: star <= reviewForm.rating ? 1 : 0.3
-                    }}
-                  >
-                    ⭐
-                  </button>
-                ))}
+          {currentUser ? (
+            <form onSubmit={handleSubmit}>
+              <div style={{ marginBottom: '12px', fontSize: '14px', color: 'var(--muted)' }}>
+                Отправляешь как: <strong>{currentUser.telegram_username ? `@${currentUser.telegram_username}` : currentUser.telegram_first_name}</strong>
               </div>
+              <div style={{ margin: '12px 0' }}>
+                <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: '500' }}>Оценка:</label>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  {[1, 2, 3, 4, 5].map(star => (
+                    <button
+                      key={star}
+                      type="button"
+                      className={`star-btn ${star <= reviewForm.rating ? 'active' : ''}`}
+                      onClick={() => setReviewForm(prev => ({ ...prev, rating: star }))}
+                      disabled={submitting}
+                      style={{ 
+                        fontSize: '24px', 
+                        background: 'none', 
+                        border: 'none', 
+                        cursor: 'pointer',
+                        opacity: star <= reviewForm.rating ? 1 : 0.3
+                      }}
+                    >
+                      ⭐
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <textarea 
+                className="textarea" 
+                placeholder="Напиши отзыв…" 
+                rows={4}
+                value={reviewForm.text}
+                onChange={(e) => setReviewForm(prev => ({ ...prev, text: e.target.value }))}
+                disabled={submitting}
+              />
+              <button 
+                type="submit" 
+                className="primary-btn"
+                disabled={submitting}
+              >
+                {submitting ? 'Отправляем...' : 'Отправить'}
+              </button>
+            </form>
+          ) : (
+            <div style={{ padding: '20px', textAlign: 'center', color: 'var(--muted)' }}>
+              Авторизуйся через Telegram, чтобы оставить отзыв
             </div>
-            <textarea 
-              className="textarea" 
-              placeholder="Напиши отзыв…" 
-              rows={4}
-              value={reviewForm.text}
-              onChange={(e) => setReviewForm(prev => ({ ...prev, text: e.target.value }))}
-              disabled={submitting}
-            />
-            <button 
-              type="submit" 
-              className="primary-btn"
-              disabled={submitting}
-            >
-              {submitting ? 'Отправляем...' : 'Отправить'}
-            </button>
-          </form>
+          )}
         </div>
         <div className="panel" style={{ marginTop: 12 }}>
           <div className="panel-title">Последние отзывы</div>
@@ -639,6 +658,7 @@ function MainApp() {
   const [checkoutSubmitting, setCheckoutSubmitting] = useState(false)
   const [products, setProducts] = useState([])
   const [isOnline, setIsOnline] = useState(navigator.onLine)
+  const [currentUser, setCurrentUser] = useState(null)
 
   // Отслеживание состояния сети
   useEffect(() => {
@@ -837,6 +857,12 @@ function MainApp() {
       return
     }
 
+    // Проверка авторизации
+    if (!currentUser) {
+      alert('Необходимо авторизоваться через Telegram для оформления заказа')
+      return
+    }
+
     // Проверка интернет соединения
     if (!navigator.onLine) {
       alert('Нет подключения к интернету. Проверь соединение и попробуй снова.')
@@ -845,23 +871,6 @@ function MainApp() {
     
     setCheckoutSubmitting(true)
     try {
-      const cleanUsername = String(telegram_username || '')
-        .trim()
-        .replace(/^@/, '')
-
-      if (!cleanUsername) {
-        throw new Error('Введи свой Telegram username')
-      }
-
-      // Валидация формата username
-      if (cleanUsername.length < 3 || cleanUsername.length > 32) {
-        throw new Error('Username должен быть от 3 до 32 символов')
-      }
-
-      if (!/^[a-zA-Z0-9_]+$/.test(cleanUsername)) {
-        throw new Error('Username может содержать только буквы, цифры и _')
-      }
-
       const items = cartItems.map((it) => ({
         product_id: it.id,
         flavor_name: it.flavor || null,
@@ -876,13 +885,19 @@ function MainApp() {
         total_amount,
         items,
         telegram_user: {
-          telegram_id: `username:${cleanUsername}`,
-          telegram_username: cleanUsername,
-          metro_station: 'Ивье',
+          telegram_id: currentUser.telegram_id,
+          telegram_username: currentUser.telegram_username,
+          telegram_first_name: currentUser.telegram_first_name,
+          telegram_last_name: currentUser.telegram_last_name,
         },
       }
 
-      const res = await ApiService.createOrder(payload)
+      // Добавляем заголовок с telegram_id для проверки блокировки
+      const headers = {
+        'X-Telegram-ID': currentUser.telegram_id
+      }
+
+      const res = await ApiService.createOrder(payload, headers)
       if (!res) throw new Error('Не удалось оформить заказ')
 
       setCartItems([])
@@ -890,7 +905,11 @@ function MainApp() {
       setCartOpen(false)
       alert('Заказ оформлен! Мы скоро свяжемся с тобой.')
     } catch (e) {
-      alert(e?.message || 'Ошибка оформления заказа')
+      if (e?.message === 'User is blocked') {
+        alert('Вы заблокированы. Обратитесь к администратору.')
+      } else {
+        alert(e?.message || 'Ошибка оформления заказа')
+      }
     } finally {
       setCheckoutSubmitting(false)
     }
@@ -904,7 +923,12 @@ function MainApp() {
         </div>
       )}
       <Preloader visible={loading} />
-      <HeaderWithCart cartCount={cartCount} onOpenCart={() => setCartOpen(true)} />
+      <HeaderWithCart 
+        cartCount={cartCount} 
+        onOpenCart={() => setCartOpen(true)} 
+        currentUser={currentUser}
+        onUserChange={setCurrentUser}
+      />
       <main className="main">
         <div className="container">
           <section className="hero">
@@ -959,7 +983,7 @@ function MainApp() {
               query={searchQuery}
             />
           )}
-          {activeTab === 'reviews' && <ReviewsPlaceholder />}
+          {activeTab === 'reviews' && <ReviewsPlaceholder currentUser={currentUser} />}
           <TabBar activeTab={activeTab} onChange={setActiveTab} />
           <ProductModal product={activeProduct} onClose={() => setActiveProduct(null)} onAdd={addToCart} />
           <CartDrawer
