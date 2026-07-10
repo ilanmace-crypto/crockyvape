@@ -93,24 +93,6 @@ export default function TelegramLogin({ onLogin }) {
     onLogin(null)
   }
 
-  if (loading) {
-    return null
-  }
-
-  if (user) {
-    return (
-      <div className="telegram-user-info">
-        <span className="telegram-user-name">
-          {user.telegram_first_name} {user.telegram_last_name}
-          {user.telegram_username && ` (@${user.telegram_username})`}
-        </span>
-        <button className="telegram-logout-btn" onClick={handleLogout}>
-          Выйти
-        </button>
-      </div>
-    )
-  }
-
   const botUsername = import.meta.env.VITE_TELEGRAM_BOT_USERNAME || 'zakazminskbot'
 
   useEffect(() => {
@@ -139,6 +121,24 @@ export default function TelegramLogin({ onLogin }) {
       }
     }
   }, [botUsername])
+
+  if (loading) {
+    return null
+  }
+
+  if (user) {
+    return (
+      <div className="telegram-user-info">
+        <span className="telegram-user-name">
+          {user.telegram_first_name} {user.telegram_last_name}
+          {user.telegram_username && ` (@${user.telegram_username})`}
+        </span>
+        <button className="telegram-logout-btn" onClick={handleLogout}>
+          Выйти
+        </button>
+      </div>
+    )
+  }
 
   return (
     <div className="telegram-login-container">
