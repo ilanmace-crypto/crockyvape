@@ -96,7 +96,7 @@ export default function TelegramLogin({ onLogin }) {
   const botUsername = import.meta.env.VITE_TELEGRAM_BOT_USERNAME || 'zakazminskbot'
 
   useEffect(() => {
-    if (!widgetContainerRef.current) return
+    if (loading || user || !widgetContainerRef.current) return
 
     const existingScript = document.getElementById('telegram-login-widget-script')
     if (existingScript) {
@@ -113,6 +113,13 @@ export default function TelegramLogin({ onLogin }) {
     script.setAttribute('data-request-access', 'write')
     script.setAttribute('data-onauth', 'onTelegramAuth(user)')
 
+    script.onload = () => {
+      console.log('Telegram widget script loaded successfully')
+    }
+    script.onerror = (error) => {
+      console.error('Telegram widget failed to load', error)
+    }
+
     widgetContainerRef.current.appendChild(script)
 
     return () => {
@@ -120,7 +127,7 @@ export default function TelegramLogin({ onLogin }) {
         widgetContainerRef.current.innerHTML = ''
       }
     }
-  }, [botUsername])
+  }, [botUsername, loading, user])
 
   if (loading) {
     return null
