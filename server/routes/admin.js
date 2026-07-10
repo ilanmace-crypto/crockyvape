@@ -140,9 +140,8 @@ router.put('/users/:id/block', authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
     
-    // Временно убираем is_blocked до миграции базы
     await pool.query(
-      'UPDATE users SET updated_at = NOW() WHERE id = $1',
+      'UPDATE users SET is_blocked = TRUE, updated_at = NOW() WHERE id = $1',
       [id]
     );
     
@@ -158,9 +157,8 @@ router.put('/users/:id/unblock', authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
     
-    // Временно убираем is_blocked до миграции базы
     await pool.query(
-      'UPDATE users SET updated_at = NOW() WHERE id = $1',
+      'UPDATE users SET is_blocked = FALSE, updated_at = NOW() WHERE id = $1',
       [id]
     );
     

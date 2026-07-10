@@ -257,6 +257,10 @@ app.post('/api/auth/telegram', async (req, res) => {
 
     let user;
     if (existingUser.rows.length > 0) {
+      user = existingUser.rows[0];
+      if (user.is_blocked) {
+        return res.status(403).json({ error: 'User is blocked' });
+      }
       const updatedUser = await pool.query(`
         UPDATE users
         SET telegram_username = $1,
@@ -284,7 +288,8 @@ app.post('/api/auth/telegram', async (req, res) => {
         telegram_id: user.telegram_id,
         telegram_username: user.telegram_username,
         telegram_first_name: user.telegram_first_name,
-        telegram_last_name: user.telegram_last_name
+        telegram_last_name: user.telegram_last_name,
+        is_blocked: user.is_blocked || false
       },
       token
     });

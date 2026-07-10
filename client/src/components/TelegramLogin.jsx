@@ -28,10 +28,11 @@ export default function TelegramLogin({ onLogin }) {
     const tgWebApp = window.Telegram?.WebApp
     const initDataUnsafe = tgWebApp?.initDataUnsafe
 
+    const botUsername = import.meta.env.VITE_TELEGRAM_BOT_USERNAME || 'zakazminskbot'
     console.log('TelegramLogin mount', {
       savedUser: savedUser ? true : false,
       initDataUnsafe: initDataUnsafe ?? null,
-      botUsername: process.env.VITE_TELEGRAM_BOT_USERNAME,
+      botUsername,
     })
 
     if (savedUser) {
@@ -110,7 +111,7 @@ export default function TelegramLogin({ onLogin }) {
     )
   }
 
-  const botUsername = process.env.VITE_TELEGRAM_BOT_USERNAME || 'zakazminskbot'
+  const botUsername = import.meta.env.VITE_TELEGRAM_BOT_USERNAME || 'zakazminskbot'
 
   useEffect(() => {
     if (!widgetContainerRef.current) return

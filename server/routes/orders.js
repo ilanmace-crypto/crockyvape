@@ -112,8 +112,12 @@ router.post('/', async (req, res) => {
       let resolvedUserId = user_id ? Number(user_id) : null;
       if (!resolvedUserId && telegram_user?.telegram_id) {
         const tgId = String(telegram_user.telegram_id);
-        const existing = await client.query('SELECT id FROM users WHERE telegram_id = $1', [tgId]);
+        const existing = await client.query('SELECT id, is_blocked FROM users WHERE telegram_id = $1', [tgId]);
         if (existing.rows.length > 0) {
+          if (existing.rows[0].is_blocked) {
+            await client.query('ROLLBACK');
+            return res.status(403).json({ error: 'User is blocked' });
+          }
           resolvedUserId = existing.rows[0].id;
           await client.query(
             'UPDATE users SET telegram_username = $1, telegram_first_name = $2, telegram_last_name = $3, phone = $4, updated_at = NOW() WHERE id = $5',

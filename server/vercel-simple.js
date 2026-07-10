@@ -584,6 +584,10 @@ app.post('/api/auth/telegram', (req, res) => {
       let user;
 
       if (existingUser.rows.length > 0) {
+        const existing = existingUser.rows[0];
+        if (existing.is_blocked) {
+          return res.status(403).json({ error: 'User is blocked' });
+        }
         const result = await pool.query(
           `UPDATE users
            SET telegram_username = $1,
